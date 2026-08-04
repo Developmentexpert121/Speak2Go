@@ -1,0 +1,260 @@
+{
+  "5_UNITS_B2": {
+    "label": "5 Point COBE",
+    "cefr_level": "B2",
+    "criteria": [
+      {
+        "criterion_name": "Topic Development",
+        "weight": 0.50,
+        "sub_criteria": [
+          {
+            "id": "sc1_relevancy",
+            "name": "Relevancy",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers are relevant to topic asked",
+              "75": "Answers are mostly relevant to topic asked",
+              "54": "Answers are partially relevant to topic asked",
+              "25": "Answers irrelevant to topic"
+            }
+          },
+          {
+            "id": "sc2_prompt_understanding",
+            "name": "Prompt Understanding",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers show complete understanding of key information, questions and prompts",
+              "75": "Answers show understanding of key information, questions and prompts for the most part",
+              "54": "Answers show partial understanding of key information, questions and prompts",
+              "25": "Answers show lack of understanding of key information, questions and prompts"
+            }
+          },
+          {
+            "id": "sc3_answer_logic",
+            "name": "Answer Logic",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers are logical and well organized",
+              "75": "Answers are mostly logical and well organized",
+              "54": "Answers are partially organized",
+              "25": "Answers lack organization"
+            }
+          },
+          {
+            "id": "sc4_answer_development",
+            "name": "Answer Development",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers are well developed (in-depth, including detailed explanations/examples to support answers)",
+              "75": "Answers are mostly developed (lacking detail or explanations/examples to support answers)",
+              "54": "Answers lack development (lacking detail or superficial explanations/examples to support answer)",
+              "25": "Answers lack development, no depth, explanations and examples"
+            }
+          }
+        ]
+      },
+      {
+        "criterion_name": "Delivery",
+        "weight": 0.15,
+        "sub_criteria": [
+          {
+            "id": "sc5_speech_quality",
+            "name": "Speech quality",
+            "weight": 0.50,
+            "levels": {
+              "100": "Speech is comprehensible (pace, intonation and word stress allow for clear and easy comprehension)",
+              "75": "Speech is mostly comprehensible (pace, intonation and word stress allow for clear and easy comprehension for the most part)",
+              "54": "Speech is partially comprehensible (pace, intonation and word stress make it difficult to comprehend)",
+              "25": "Speech is incomprehensible (pace, intonation, and word stress are unintelligible)"
+            }
+          },
+          {
+            "id": "sc6_fluency",
+            "name": "Fluency",
+            "weight": 0.50,
+            "levels": {
+              "100": "Speech has almost no hesitations",
+              "75": "Speech has some hesitations",
+              "54": "Speech has many hesitations",
+              "25": "Speech is mostly hesitant"
+            }
+          }
+        ]
+      },
+      {
+        "criterion_name": "Vocabulary",
+        "weight": 0.20,
+        "sub_criteria": [
+          {
+            "id": "sc7_vocabulary_range",
+            "name": "Vocabulary range",
+            "weight": 1.00,
+            "levels": {
+              "100": "Answers include correct and varied use of appropriate words, chunks, and expressions",
+              "75": "Answers include mostly correct and mostly varied use of appropriate words, chunks, and expressions",
+              "54": "Answers include partially correct and some inappropriate use or repetition of words, chunks, and expressions",
+              "25": "Answers include mostly incorrect and repetitive use of words, chunks, and expressions"
+            }
+          }
+        ]
+      },
+      {
+        "criterion_name": "Language",
+        "weight": 0.15,
+        "sub_criteria": [
+          {
+            "id": "sc8_correct_grammar",
+            "name": "Correct Grammar",
+            "weight": 0.50,
+            "levels": {
+              "100": "Answers include correct use of appropriate language structures",
+              "75": "Answers include mostly correct use of appropriate language structures",
+              "54": "Answers include partial use of appropriate language structures with many errors",
+              "25": "Answers include mostly incorrect use of language structures"
+            }
+          },
+          {
+            "id": "sc9_english_only",
+            "name": "English Only",
+            "weight": 0.50,
+            "levels": {
+              "100": "Answers include only the use of English (other than religious holidays, national celebrations)",
+              "75": "Answers include only the use of English (other than religious holidays, national celebrations)",
+              "54": "Answers include only the use of English (other than religious holidays, national celebrations)",
+              "25": "Answers include use of languages other than English (other than for religious holidays, national celebrations)"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  "4_UNITS_B1": {
+    "label": "4 Point COBE",
+    "cefr_level": "B1",
+    "criteria": [
+      {
+        "criterion_name": "Topic Development",
+        "weight": 0.60,
+        "sub_criteria": [
+          {
+            "id": "sc1_relevancy",
+            "name": "Relevancy",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers are relevant to topic asked",
+              "75": "Answers are partially relevant to topic asked",
+              "54": "Answers are minimally relevant to topic asked",
+              "25": "Answers irrelevant to topic"
+            }
+          },
+          {
+            "id": "sc2_prompt_understanding",
+            "name": "Prompt Understanding",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers show understanding of key information, questions and prompts",
+              "75": "Answers show partial understanding of key information, questions and prompts",
+              "54": "Answers show minimal understanding of key information, questions and prompts",
+              "25": "Answers show lack of understanding of key information, questions and prompts"
+            }
+          },
+          {
+            "id": "sc3_answer_logic",
+            "name": "Answer Logic",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers are logical and well organized",
+              "75": "Answers are mostly logical and well organized",
+              "54": "Answers are partially organized",
+              "25": "Answers lack organization"
+            }
+          },
+          {
+            "id": "sc4_answer_development",
+            "name": "Answer Development",
+            "weight": 0.25,
+            "levels": {
+              "100": "Answers are well developed (including detailed explanations/examples to support answers)",
+              "75": "Answers are mostly developed (some details, some explanations/examples to support answers)",
+              "54": "Answers lack details (not enough or limited explanations/examples to support answer)",
+              "25": "Answers lack details (no explanations and examples)"
+            }
+          }
+        ]
+      },
+      {
+        "criterion_name": "Delivery",
+        "weight": 0.10,
+        "sub_criteria": [
+          {
+            "id": "sc5_speech_quality",
+            "name": "Speech quality",
+            "weight": 0.50,
+            "levels": {
+              "100": "Speech is mostly comprehensible (pace, intonation and word stress allow for clear and easy comprehension)",
+              "75": "Speech is partially comprehensible (pace, intonation and word stress only allow for partial comprehension)",
+              "54": "Speech is minimally comprehensible (pace, intonation and word stress make it difficult to comprehend)",
+              "25": "Speech is incomprehensible (pace, intonation, and word stress are unintelligible)"
+            }
+          },
+          {
+            "id": "sc6_fluency",
+            "name": "Fluency",
+            "weight": 0.50,
+            "levels": {
+              "100": "Speech has some hesitations",
+              "75": "Speech has many hesitations",
+              "54": "Speech is mostly hesitant",
+              "25": "Speech is extremely hesitant"
+            }
+          }
+        ]
+      },
+      {
+        "criterion_name": "Vocabulary",
+        "weight": 0.20,
+        "sub_criteria": [
+          {
+            "id": "sc7_vocabulary_range",
+            "name": "Vocabulary range",
+            "weight": 1.00,
+            "levels": {
+              "100": "Answers include mostly correct and varied use of appropriate words, chunks, and expressions",
+              "75": "Answers include partially correct and mostly varied use of appropriate words, chunks, and expressions",
+              "54": "Answers include minimally correct and some inappropriate use or repetition of words, chunks, and expressions",
+              "25": "Answers include mostly incorrect and repetitive use of words, chunks, and expressions"
+            }
+          }
+        ]
+      },
+      {
+        "criterion_name": "Language",
+        "weight": 0.10,
+        "sub_criteria": [
+          {
+            "id": "sc8_correct_grammar",
+            "name": "Correct Grammar",
+            "weight": 0.50,
+            "levels": {
+              "100": "Answers include mostly correct use of appropriate language structures",
+              "75": "Answers include partially correct use of appropriate language structures",
+              "54": "Answers include minimal use of appropriate language structures with many errors",
+              "25": "Answers include mostly incorrect use of language structures"
+            }
+          },
+          {
+            "id": "sc9_english_only",
+            "name": "English Only",
+            "weight": 0.50,
+            "levels": {
+              "100": "Answers include only the use of English (other than religious holidays, national celebrations)",
+              "75": "Answers mostly include the use of English (other than religious holidays, national celebrations)",
+              "54": "Answers include use of languages other than English (other than for religious holidays, national celebrations and culturally bound phrases)",
+              "25": "Answers include very limited use of English in answering the questions"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

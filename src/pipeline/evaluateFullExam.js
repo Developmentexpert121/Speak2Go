@@ -1,0 +1,192 @@
+const { evaluateQuestion } = require("./evaluateExam");
+const { groupQuestions, isTimeBasedDeductionQuestion } = require("../utils/questionMeta");
+const { computeGroupCoverageDeduction, applyCoverageDeductionToQuestion } = require("../utils/coverageDeduction");
+const { computeTimeBasedDeduction } = require("../utils/timeBasedDeduction");
+const { getBlueprint, getExamTotalPoints } = require("../config/examBlueprint");
+
+/**
+ * Evaluates an entire exam as a unit, so that cross-question rules — the
+ * 1a/1b coverage chart and the Part B time-based deduction — can be applied
+ * correctly.
+ *
+ * SCORING MODEL: `weight` is an absolute point value, and the exam is always
+ * marked out of the blueprint total (100), never out of "whatever was
+ * submitted". A question the student didn't attempt contributes 0 points
+ * rather than being dropped from the denominator.
+ *
+ * @param {object} params
+ * @param {Array} params.questions - [{ question_id, description, part,
+ *   question_text, weight, audioFilePath }, ...]
+ * @param {"5_UNITS_B2"|"4_UNITS_B1"} params.level
+ * @param {number} [params.examTotalPoints] - override the blueprint total;
+ *   only for partial/practice exams that are genuinely marked out of less
+ * @param {Array} [params.examLayout] - the full slot list this exam should
+ *   have had, as returned by examBlueprint.inspectLesson().layout. Needed to
+ *   report unattempted questions correctly, because Part B is one question in
+ *   the 2019-2022 lessons and two in the 2023 ones — the default blueprint
+ *   would otherwise report "2" as unattempted on a 2023 exam where the
+ *   student answered 2a and 2b.
+ */
+async function evaluateFullExam({ questions, level, examTotalPoints, examLayout }) {
+  assertWeightsAreUsable(questions, level);
+
+  const totalPoints = examTotalPoints ?? getExamTotalPoints(level);
+  const groups = groupQuestions(questions, level); // { "1": [1a, 1b], "2": [2], ... }
+  const orderedGroupIds = Object.keys(groups).sort((a, b) => Number(a) - Number(b));
+
+  const resultsByQuestionId = {};
+
+  // 1. Evaluate every question, passing prior-in-group answers as context
+  for (const groupId of orderedGroupIds) {
+    const groupList = groups[groupId];
+    const priorContext = [];
+
+    for (const q of groupList) {
+      const result = await evaluateQuestion({
+        audioFilePath: q.audioFilePath,
+        questionText: q.question_text,
+        level,
+        // evaluateQuestion doesn't currently accept priorContext directly —
+        // see note below on wiring this through if not already done.
+        priorContext: priorContext.length ? [...priorContext] : undefined,
+      });
+
+      resultsByQuestionId[q.question_id] = {
+        ...result,
+        question_id: q.question_id,
+        group_id: groupId,
+        weight: q.weight,
+        description: q.description,
+      };
+
+      priorContext.push({
+        question_id: q.question_id,
+        question_text: q.question_text,
+        transcript: result.transcript,
+      });
+    }
+  }
+
+  // 2. Apply the coverage (partial-answer) deduction per group, to Topic
+  //    Development only, on every question in that group
+  for (const groupId of orderedGroupIds) {
+    const groupList = groups[groupId].map((q) => resultsByQuestionId[q.question_id]);
+    if (groupList.length <= 1) continue;
+
+    const { deductionPct, answeredCount, totalCount } = computeGroupCoverageDeduction(groupList);
+    if (deductionPct === 0) continue;
+
+    for (const q of groupList) {
+      const adjusted = applyCoverageDeductionToQuestion(q, deductionPct);
+      resultsByQuestionId[q.question_id] = {
+        ...adjusted,
+        coverage_note: `${answeredCount}/${totalCount} sub-questions answered in set ${groupId} — ${deductionPct}% deduction applied to Topic Development`,
+      };
+    }
+  }
+
+  // 3. Apply the Part B time-based deduction where applicable
+  for (const q of questions) {
+    if (!isTimeBasedDeductionQuestion(q, level)) continue;
+    const result = resultsByQuestionId[q.question_id];
+    const duration = result.audio_metrics.totalDurationSeconds;
+    const { deductionPct, band } = computeTimeBasedDeduction(duration);
+
+    if (deductionPct > 0) {
+      result.deductions.push({
+        reason: `Part B/Project time-based rule: answer length in band ${band}`,
+        deductionPct,
+      });
+    }
+  }
+
+  // 4. Recompute final_question_score from (possibly updated) raw_score +
+  //    the full deductions list for every question, taking the worst
+  //    applicable deduction (deductions in this spec don't stack additively)
+  for (const id of Object.keys(resultsByQuestionId)) {
+    const r = resultsByQuestionId[id];
+    const worstDeductionPct = r.deductions.length
+      ? Math.max(...r.deductions.map((d) => d.deductionPct))
+      : 0;
+    r.final_question_score = Number((r.raw_score * (1 - worstDeductionPct / 100)).toFixed(2));
+  }
+
+  // 5. Exam-level overall score.
+  //
+  //    Each question converts its 0-100 rubric score into the points it is
+  //    worth, and the exam is marked out of the FULL blueprint total. A
+  //    question that was never attempted simply earns 0 of its points — it
+  //    does not shrink the denominator. (Previously the denominator was the
+  //    sum of submitted weights, so skipping Part C entirely produced a
+  //    perfect 100 instead of a 50.)
+  const allResults = Object.values(resultsByQuestionId);
+
+  const pointsEarned = allResults.reduce(
+    (sum, r) => sum + (r.final_question_score / 100) * r.weight,
+    0
+  );
+  const overallScore = totalPoints > 0 ? (pointsEarned / totalPoints) * 100 : 0;
+
+  const layout = (examLayout || getBlueprint(level)).map((bp) => ({
+    question_id: bp.question_id,
+    part: bp.part,
+    points: bp.points,
+    description: bp.description,
+  }));
+
+  const attemptedIds = new Set(allResults.map((r) => String(r.question_id)));
+  const unattempted = layout
+    .filter((bp) => !attemptedIds.has(String(bp.question_id)))
+    .map((bp) => ({ question_id: bp.question_id, description: bp.description, points_forfeited: bp.points }));
+
+  return {
+    level,
+    overall_score: Number(overallScore.toFixed(2)),
+    points_earned: Number(pointsEarned.toFixed(2)),
+    points_possible: totalPoints,
+    // The slot list this exam was marked against — the report renderer needs
+    // it to lay out a 2023-format exam, whose Part B has two questions
+    exam_layout: layout,
+    unattempted_questions: unattempted,
+    question_results: allResults.sort((a, b) => String(a.question_id).localeCompare(String(b.question_id))),
+  };
+}
+
+/**
+ * Fails loudly on weight configurations that used to produce silently wrong
+ * totals — most notably a missing `weight`, which the old code substituted
+ * with 1 in the numerator while omitting it from the denominator, allowing
+ * overall_score to exceed 100.
+ */
+function assertWeightsAreUsable(questions, level) {
+  if (!Array.isArray(questions) || questions.length === 0) {
+    throw new Error("evaluateFullExam: `questions` must be a non-empty array");
+  }
+
+  const missing = questions.filter(
+    (q) => typeof q.weight !== "number" || !Number.isFinite(q.weight) || q.weight < 0
+  );
+  if (missing.length) {
+    throw new Error(
+      `evaluateFullExam: every question needs a numeric \`weight\` (points). Missing or invalid on: ` +
+        missing.map((q) => q.question_id).join(", ")
+    );
+  }
+
+  const ids = questions.map((q) => String(q.question_id));
+  const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+  if (dupes.length) {
+    throw new Error(`evaluateFullExam: duplicate question_id(s): ${[...new Set(dupes)].join(", ")}`);
+  }
+
+  const submitted = questions.reduce((s, q) => s + q.weight, 0);
+  const blueprintTotal = getExamTotalPoints(level);
+  if (submitted > blueprintTotal + 1e-9) {
+    throw new Error(
+      `evaluateFullExam: submitted question weights total ${submitted}, which exceeds the ` +
+        `${blueprintTotal}-point exam total for ${level}. Weights are absolute points, not fractions.`
+    );
+  }
+}
+
+module.exports = { evaluateFullExam };

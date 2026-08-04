@@ -1,0 +1,21 @@
+{
+  "name": "cobe-eval-pipeline",
+  "version": "0.1.0",
+  "description": "STT + rubric scoring pipeline for COBE/Boost oral exam evaluation (Phase 1: no DB)",
+  "main": "src/pipeline/evaluateExam.js",
+  "type": "commonjs",
+  "scripts": {
+    "test:stt": "node test/run_stt.js",
+    "test:pipeline": "node test/run_pipeline.js",
+    "test:full-exam": "node test/run_full_exam.js",
+    "test:report": "node test/run_report_only.js",
+    "test:dashboard": "node test/run_dashboard.js",
+    "test:unit": "node --test test/unit/*.test.js"
+  },
+  "dependencies": {
+    "@deepgram/sdk": "^3.9.0",
+    "dotenv": "^16.4.5",
+    "openai": "^4.60.0",
+    "puppeteer": "^23.3.0"
+  }
+}

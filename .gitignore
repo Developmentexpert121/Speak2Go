@@ -1,0 +1,21 @@
+# Secrets — .env holds live Deepgram and OpenAI keys. Never commit it.
+.env
+.env.local
+.env.*.local
+
+node_modules/
+
+# Local exam persistence (fileStore.js) — real student data, not source
+data/
+
+# Generated report artefacts
+test/sample_report.html
+test/sample_report.pdf
+test/sample_dashboard.html
+test/sample_dashboard.pdf
+
+# Reference data pulled from the client database
+db_reference/
+
+.DS_Store
+*.log

@@ -12,7 +12,7 @@ function getClient() {
  * Audio metrics are injected as objective evidence so the LLM doesn't
  * have to "guess" fluency/pace from text alone.
  */
-function buildPrompt({ questionText, transcript, audioMetrics, criteria, priorContext }) {
+function buildPrompt({ questionText, transcript, audioMetrics, criteria, priorContext, referenceMaterial }) {
   const rubricForPrompt = criteria.map((c) => ({
     criterion_name: c.criterion_name,
     sub_criteria: c.sub_criteria.map((sc) => ({
@@ -35,11 +35,21 @@ Use this only to judge whether the CURRENT answer is consistent, non-repetitive,
 `
     : "";
 
+  // Part C only: the transcript of the video/audio clip the student watched
+  // before answering.  When present, the LLM uses it as ground truth to judge
+  // whether the student correctly identified and discussed the clip's content.
+  const refBlock = referenceMaterial
+    ? `
+PART C REFERENCE CLIP TRANSCRIPT (the material the student was asked to watch/listen to — use this as ground truth for Topic Development, content accuracy, and relevance):
+"""${referenceMaterial}"""
+`
+    : "";
+
   return `You are an examiner scoring a student's spoken English answer for the Israeli Ministry of Education COBE oral exam, following the official rubric EXACTLY.
 
 QUESTION ASKED:
 """${questionText}"""
-${contextBlock}
+${contextBlock}${refBlock}
 STUDENT TRANSCRIPT (from speech-to-text) — this is the ONLY answer being scored:
 """${transcript}"""
 
@@ -80,8 +90,8 @@ INSTRUCTIONS:
 /**
  * Calls the LLM to evaluate one question's transcript against the rubric.
  */
-async function scoreQuestionAgainstRubric({ questionText, transcript, audioMetrics, criteria, priorContext }) {
-  const prompt = buildPrompt({ questionText, transcript, audioMetrics, criteria, priorContext });
+async function scoreQuestionAgainstRubric({ questionText, transcript, audioMetrics, criteria, priorContext, referenceMaterial }) {
+  const prompt = buildPrompt({ questionText, transcript, audioMetrics, criteria, priorContext, referenceMaterial });
 
   let response;
   try {

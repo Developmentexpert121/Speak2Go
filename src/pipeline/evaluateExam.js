@@ -13,8 +13,11 @@ const { applyPenalties } = require("../utils/applyPenalties");
  * @param {string} params.audioFilePath - local path to the student's audio answer
  * @param {string} params.questionText - the question text asked
  * @param {"5_UNITS_B2"|"4_UNITS_B1"} params.level - which rubric to use
+ * @param {Array}  [params.priorContext] - earlier answers in the same question set
+ * @param {string|null} [params.referenceMaterial] - Part C clip transcript;
+ *   null/undefined for Parts A and B (scorer ignores it when absent)
  */
-async function evaluateQuestion({ audioFilePath, questionText, level, priorContext }) {
+async function evaluateQuestion({ audioFilePath, questionText, level, priorContext, referenceMaterial }) {
   const rubric = rubrics[level];
   if (!rubric) {
     throw new Error(`Unknown level "${level}". Available: ${Object.keys(rubrics).join(", ")}`);
@@ -44,6 +47,7 @@ async function evaluateQuestion({ audioFilePath, questionText, level, priorConte
       audioMetrics,
       criteria: rubric.criteria,
       priorContext,
+      referenceMaterial: referenceMaterial || null,
     });
     contentFlags = llmResult.contentFlags;
 

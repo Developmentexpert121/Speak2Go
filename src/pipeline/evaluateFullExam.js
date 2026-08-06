@@ -49,6 +49,9 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout 
         // evaluateQuestion doesn't currently accept priorContext directly —
         // see note below on wiring this through if not already done.
         priorContext: priorContext.length ? [...priorContext] : undefined,
+        // For Part C questions this is the transcript of the clip the student
+        // just watched; null for Parts A/B (ignored by evaluateQuestion).
+        referenceMaterial: q.referenceMaterial ?? null,
       });
 
       resultsByQuestionId[q.question_id] = {

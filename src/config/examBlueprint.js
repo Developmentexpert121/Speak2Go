@@ -1,3 +1,5 @@
+const { getReferenceMaterial } = require("../storage/referenceMaterialStore");
+
 /**
  * The canonical shape of a COBE exam, and the adapter that recovers that shape
  * from a raw Speak2Go lesson record.
@@ -230,6 +232,10 @@ function isFullExamLesson(questionList, lessonName = "", level = "5_UNITS_B2") {
  * @param {string} level
  * @param {object} [options]
  * @param {string} [options.lessonName] - only used to improve the error message
+ * @param {object} [options.referenceMaterialByIdDetection] - pre-fetched map of
+ *   { [ID_detection]: transcriptString } for Part C clips.  When supplied the
+ *   sync function can attach it directly; otherwise call the async variant
+ *   `mapLessonToExamQuestionsAsync` which does the store lookups itself.
  */
 function mapLessonToExamQuestions(
   questionList,
@@ -238,6 +244,7 @@ function mapLessonToExamQuestions(
   options = {}
 ) {
   const lessonName = options.lessonName || "";
+  const refMaterialMap = options.referenceMaterialByIdDetection || {};
   const { isFullExam, reasons, layout } = inspectLesson(questionList, lessonName, level);
 
   if (!isFullExam) {
@@ -255,6 +262,64 @@ function mapLessonToExamQuestions(
     question_text: String(slot.source.text || "").trim(),
     id_detection: slot.source.ID_detection,
     audioFilePath: audioByIdDetection[slot.source.ID_detection] || null,
+    // referenceMaterial is only relevant for Part C questions (the clip the
+    // student watches before answering).  For other parts it's null / undefined
+    // and the evaluator ignores it.
+    referenceMaterial: refMaterialMap[slot.source.ID_detection] ?? null,
+  }));
+}
+
+/**
+ * Async variant of mapLessonToExamQuestions that looks up the Part C
+ * reference-material transcripts from the store automatically, keyed by
+ * each slot's ID_detection.
+ *
+ * Use this in production where you can await; use the sync form only when
+ * you have already pre-fetched the transcripts yourself (e.g. in tests).
+ *
+ * @param {Array} questionList
+ * @param {object} audioByIdDetection
+ * @param {string} level
+ * @param {object} [options] - same as mapLessonToExamQuestions, minus
+ *   referenceMaterialByIdDetection (that is fetched here automatically)
+ * @returns {Promise<Array>}
+ */
+async function mapLessonToExamQuestionsAsync(
+  questionList,
+  audioByIdDetection = {},
+  level = "5_UNITS_B2",
+  options = {}
+) {
+  const lessonName = options.lessonName || "";
+  const { isFullExam, reasons, layout } = inspectLesson(questionList, lessonName, level);
+
+  if (!isFullExam) {
+    throw new Error(
+      `Lesson${lessonName ? ` "${lessonName}"` : ""} is not a gradeable ` +
+        `${level} exam: ${reasons.join("; ")}`
+    );
+  }
+
+  // Look up reference material concurrently for every Part C slot.
+  const partCIds = layout
+    .filter((s) => s.part === "C")
+    .map((s) => s.source.ID_detection)
+    .filter(Boolean);
+
+  const refEntries = await Promise.all(
+    partCIds.map(async (id) => [id, await getReferenceMaterial(id)])
+  );
+  const refMaterialMap = Object.fromEntries(refEntries);
+
+  return layout.map((slot) => ({
+    question_id: slot.question_id,
+    description: slot.description,
+    part: slot.part,
+    weight: slot.points,
+    question_text: String(slot.source.text || "").trim(),
+    id_detection: slot.source.ID_detection,
+    audioFilePath: audioByIdDetection[slot.source.ID_detection] || null,
+    referenceMaterial: refMaterialMap[slot.source.ID_detection] ?? null,
   }));
 }
 
@@ -270,4 +335,5 @@ module.exports = {
   inspectLesson,
   isFullExamLesson,
   mapLessonToExamQuestions,
+  mapLessonToExamQuestionsAsync,
 };

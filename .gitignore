@@ -16,6 +16,7 @@ test/sample_dashboard.pdf
 
 # Reference data pulled from the client database
 db_reference/
+sample_audio/
 
 .DS_Store
 *.log

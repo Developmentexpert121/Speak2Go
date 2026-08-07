@@ -79,31 +79,109 @@ produce grades that look official and are not.
 
 ## Setup
 
-Requires **Node 18+**.
+### 1. Prerequisites
+
+**Node 18 or newer** (developed on v20). Check what you have:
+
+```bash
+node -v      # must be >= 18
+npm -v
+```
+
+Node 18 is the floor because the project uses Express 5 and the built-in
+`node:test` runner. Nothing else needs installing — no database, no Docker,
+no Redis. Phase 1 keeps everything in memory on purpose.
+
+### 2. Clone and install
 
 ```bash
 git clone https://github.com/kfirSpeak2go/COBE_Exam_Tester.git
 cd COBE_Exam_Tester
 npm install
-cp .env.example .env      # then fill in the keys
 ```
 
-You need two API keys to run anything against real audio: **Deepgram** (speech-
-to-text) and **OpenAI** (rubric scoring). Both are billable. See `.env.example`
-— every variable is documented there.
+`npm install` pulls roughly 66 MB into `node_modules` and **also downloads a
+private copy of Chromium** (a few hundred MB more, into `~/.cache/puppeteer`).
+That is Puppeteer, which renders the PDF reports. The first install is slow
+because of it — this is expected, not a hang. If you never need PDFs you can
+skip it with `PUPPETEER_SKIP_DOWNLOAD=1 npm install`, and everything except
+`report.pdf` still works.
 
-For real student data you also need `STUDENT_ID_SALT`. It hashes the national
-ID into the anonymised `student_id` the spec requires, and **must not change
-once set** — changing it re-issues every identifier and breaks the link to past
-reports.
+### 3. Configure the environment
+
+```bash
+cp .env.example .env
+```
+
+Then open `.env` and fill it in. Every variable is documented in the file
+itself; these are the ones that matter:
+
+| Variable | Needed for | Notes |
+|---|---|---|
+| `DEEPGRAM_API_KEY` | any real run | speech-to-text — **billable** |
+| `OPENAI_API_KEY` | any real run | rubric scoring — **billable** |
+| `STUDENT_ID_SALT` | real student data | see warning below |
+| `OPENAI_MODEL` | optional | defaults to `gpt-4o` |
+| `PORT` | optional | defaults to `3000` |
+| `SPEAK2GO_API_URL` / `_TOKEN` | optional | only for pulling recordings from the platform |
+
+Generate the salt once:
+
+```bash
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+```
+
+> **`STUDENT_ID_SALT` must never change once set.** It hashes the national ID
+> into the anonymised `student_id` the spec requires. Changing it silently
+> reissues every identifier and breaks the link between a student and all
+> their past reports. It looks like a password, but treat it like a database
+> key — do not "rotate" it as routine hygiene.
+
+`.env` is gitignored and must stay that way. It holds live billable keys.
+
+### 4. Verify the install — without spending anything
+
+Run these in order. Neither costs a cent or needs an API key:
+
+```bash
+npm run test:unit        # 54 tests, offline. All should pass.
+npm run test:dashboard   # writes test/sample_dashboard.html + .pdf
+```
+
+If the unit tests pass, the scoring logic is sound. If the dashboard renders,
+Puppeteer and the PDF path work too. Open `test/sample_dashboard.html` in a
+browser to see what a finished report looks like.
+
+### 5. Start the server
 
 ```bash
 npm start        # http://localhost:3000
-npm run dev      # same, with --watch
+npm run dev      # same, with --watch for auto-restart
 ```
 
-The server warns on boot if the keys are missing rather than failing later
-mid-run.
+Then confirm it is wired up correctly:
+
+```bash
+curl http://localhost:3000/api/health
+```
+
+`deepgramKey` and `openaiKey` should both be `true`. If either is `false`, the
+key is missing from `.env` and real runs will fail — the server warns about
+this on boot rather than letting you find out mid-run.
+
+`recordingsFetch:false` is normal and fine; it just means the optional
+Speak2Go platform credentials are not set, so the UI will ask you to upload
+audio manually instead of fetching it.
+
+### Troubleshooting
+
+| Symptom | Cause |
+|---|---|
+| `npm install` appears to hang | Puppeteer downloading Chromium. Let it finish. |
+| Server boots with a keys warning | `.env` missing or not filled in. |
+| `OpenAI request failed using model="…"` | Bad `OPENAI_MODEL`, or the key lacks access to it. The error prints the model string it tried. |
+| PDF endpoint 404s | Report evicted — reports live in memory and are lost on restart. |
+| 422 when starting a run | You selected 3-point Boost, which has no rubric. See **Levels**. |
 
 ---
 

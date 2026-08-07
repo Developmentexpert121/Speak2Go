@@ -463,13 +463,24 @@ function renderRecommendations(report) {
  * Styles
  * ------------------------------------------------------------------ */
 
+/* Palette is the Speak2Go logo's, kept in step with public/styles.css so the
+   downloadable report, the inline dashboard and the live UI are one brand.
+
+   Same three-depth rule as the live UI: --brand is the logo blue and is only
+   ever a FILL, because white text on it is ~2.4:1 and fails AA. --brand-700 is
+   the only blue that carries text on white. The score bands stay green/amber/
+   red rather than shifting to brand tints — this document is the artefact a
+   grade gets disputed from, so pass/fail has to read at a glance and must not
+   be confusable with a decorative brand accent. */
 const STYLES = `
 :root{
-  --ink:#16212c; --ink-2:#3d4d5c; --muted:#6b7d8c; --line:#e3e9ed;
-  --bg:#f5f7f9; --surface:#ffffff;
-  --high:#1a8a5a; --mid:#c07d10; --low:#c0392b;
-  --accent:#0e6b73;
-  --high-bg:#e8f5ee; --mid-bg:#fdf3e0; --low-bg:#fbeceb;
+  --brand:#17adf2; --brand-600:#0b8fd6; --brand-700:#0a6e9e;
+  --brand-tint:#e9f6fe; --brand-tint-2:#cbe8fa;
+  --ink:#1f2730; --ink-2:#46545f; --muted:#667582; --line:#dde8f1;
+  --bg:#f2f7fb; --surface:#ffffff; --surface-2:#f6fafd;
+  --high:#12925f; --mid:#b0730a; --low:#d0402f;
+  --accent:#0a6e9e;
+  --high-bg:#e6f6ef; --mid-bg:#fdf4e3; --low-bg:#fdedeb;
 }
 *{box-sizing:border-box}
 body{
@@ -483,20 +494,28 @@ h1,h2{margin:0; letter-spacing:-.01em}
 .right{text-align:right}
 
 /* header */
+/* The brand shows up as a strip along the top of the header card rather than
+   a filled banner: this document is printed and PDF'd, and a full-bleed blue
+   block costs a lot of toner for no added meaning. */
 .header{
+  position:relative; overflow:hidden;
   display:flex; justify-content:space-between; align-items:center; gap:24px;
   background:var(--surface); border:1px solid var(--line); border-radius:14px;
   padding:26px 28px; margin-bottom:16px;
 }
+.header::before{
+  content:""; position:absolute; top:0; left:0; right:0; height:4px;
+  background:linear-gradient(90deg,var(--brand) 0%,var(--brand-600) 60%,#0778b4 100%);
+}
 .eyebrow{font-size:11px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--accent); margin-bottom:6px}
 .header h1{font-size:26px; font-weight:700}
 .header-meta{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:10px; color:var(--muted); font-size:12.5px}
-.tag{background:#eef3f5; color:var(--ink-2); border-radius:5px; padding:3px 9px; font-weight:600; font-size:11.5px}
+.tag{background:var(--brand-tint); color:var(--ink-2); border-radius:5px; padding:3px 9px; font-weight:600; font-size:11.5px}
 .tag-quiet{background:transparent; border:1px solid var(--line); color:var(--muted); font-weight:500}
-.dot{color:#c3ccd3}
+.dot{color:#b9cdda}
 
 .score-dial{position:relative; width:128px; height:128px; flex-shrink:0}
-.dial-track{fill:none; stroke:#eef2f4; stroke-width:11}
+.dial-track{fill:none; stroke:var(--line); stroke-width:11}
 .dial-value{fill:none; stroke-width:11; stroke-linecap:round; transition:stroke-dashoffset .6s ease}
 .band-high .dial-value{stroke:var(--high)} .band-mid .dial-value{stroke:var(--mid)} .band-low .dial-value{stroke:var(--low)}
 .score-inner{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
@@ -525,20 +544,20 @@ h1,h2{margin:0; letter-spacing:-.01em}
 /* pipeline */
 .legend{font-size:11.5px; color:var(--muted); display:flex; align-items:center; gap:6px}
 .lg{width:9px; height:9px; border-radius:2px; display:inline-block; margin-left:8px}
-.lg-det{background:var(--accent)} .lg-llm{background:#8557b8} .lg-io{background:#8b9aa5}
+.lg-det{background:var(--accent)} .lg-llm{background:#8557b8} .lg-io{background:#7b8fa0}
 .pipeline{display:flex; align-items:stretch; gap:0; overflow-x:auto; padding-bottom:4px}
-.stage{flex:1 1 0; min-width:112px; border:1px solid var(--line); border-top:3px solid #8b9aa5; border-radius:9px; padding:12px 11px; background:#fcfdfd; display:flex; flex-direction:column}
-.stage-det{border-top-color:var(--accent)} .stage-llm{border-top-color:#8557b8; background:#faf7fd} .stage-out{border-top-color:var(--high); background:#f8fcfa}
+.stage{flex:1 1 0; min-width:112px; border:1px solid var(--line); border-top:3px solid #7b8fa0; border-radius:9px; padding:12px 11px; background:var(--surface-2); display:flex; flex-direction:column}
+.stage-det{border-top-color:var(--accent)} .stage-llm{border-top-color:#8557b8; background:#faf7fd} .stage-out{border-top-color:var(--high); background:#f1faf5}
 .stage-n{font-size:10px; font-weight:700; color:var(--muted); font-variant-numeric:tabular-nums}
 .stage-name{font-size:12px; font-weight:700; margin:3px 0 5px; letter-spacing:-.015em; line-height:1.25}
 .stage-detail{font-size:10.5px; color:var(--muted); line-height:1.4; margin-top:auto}
 .stage-arrow{flex:0 0 13px; position:relative}
-.stage-arrow::before{content:""; position:absolute; top:50%; left:2px; right:2px; height:1.5px; background:#d0d9df}
-.stage-arrow::after{content:""; position:absolute; top:50%; right:2px; width:5px; height:5px; border-top:1.5px solid #d0d9df; border-right:1.5px solid #d0d9df; transform:translateY(-50%) rotate(45deg)}
+.stage-arrow::before{content:""; position:absolute; top:50%; left:2px; right:2px; height:1.5px; background:var(--line)}
+.stage-arrow::after{content:""; position:absolute; top:50%; right:2px; width:5px; height:5px; border-top:1.5px solid #c3d5e3; border-right:1.5px solid #c3d5e3; transform:translateY(-50%) rotate(45deg)}
 .pipeline-note{font-size:12px; color:var(--muted); margin:14px 0 0; line-height:1.55; max-width:78ch}
 
 /* bars */
-.bar{background:#eef2f4; border-radius:99px; height:8px; overflow:hidden}
+.bar{background:#e4eef6; border-radius:99px; height:8px; overflow:hidden}
 .bar-sm{height:6px}
 .bar-fill{height:100%; border-radius:99px}
 .bar-fill.band-high{background:var(--high)} .bar-fill.band-mid{background:var(--mid)} .bar-fill.band-low{background:var(--low)}
@@ -559,18 +578,18 @@ h1,h2{margin:0; letter-spacing:-.01em}
 /* question cards */
 .q-card{padding:18px 20px}
 .q-head{display:flex; align-items:center; gap:11px; padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:13px}
-.q-id{font-weight:700; font-size:13px; background:#eef3f5; border-radius:5px; padding:3px 8px; font-variant-numeric:tabular-nums}
+.q-id{font-weight:700; font-size:13px; background:var(--brand-tint); color:var(--brand-700); border-radius:5px; padding:3px 8px; font-variant-numeric:tabular-nums}
 .q-desc{flex:1; font-size:12.5px; color:var(--ink-2)}
 .q-weight{font-size:11.5px; color:var(--muted); white-space:nowrap}
 .q-score{font-size:19px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.02em}
 .q-score.band-high{color:var(--high)} .q-score.band-mid{color:var(--mid)} .q-score.band-low{color:var(--low)}
-.q-missing{background:#fcfdfd; border-style:dashed}
+.q-missing{background:var(--surface-2); border-style:dashed}
 
 .chips{display:flex; flex-wrap:wrap; gap:6px; margin-bottom:13px}
-.chip{font-size:11px; background:#f2f5f7; color:var(--ink-2); border-radius:5px; padding:3px 8px; font-variant-numeric:tabular-nums}
+.chip{font-size:11px; background:#eef4f9; color:var(--ink-2); border-radius:5px; padding:3px 8px; font-variant-numeric:tabular-nums}
 
 .subs{display:flex; flex-wrap:wrap; gap:5px; margin:-3px 0 12px}
-.sub{font-size:10.5px; border-radius:4px; padding:2px 7px; color:var(--ink-2); background:#f4f7f8}
+.sub{font-size:10.5px; border-radius:4px; padding:2px 7px; color:var(--ink-2); background:#eef4f9}
 .sub.band-high{background:var(--high-bg)} .sub.band-mid{background:var(--mid-bg)} .sub.band-low{background:var(--low-bg)}
 .sub b{font-variant-numeric:tabular-nums}
 
@@ -586,12 +605,12 @@ h1,h2{margin:0; letter-spacing:-.01em}
 /* table */
 .table{width:100%; border-collapse:collapse; font-size:12.5px}
 .table th{text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--muted); padding:0 10px 8px; border-bottom:1px solid var(--line)}
-.table td{padding:10px; border-bottom:1px solid #f0f4f6; vertical-align:top}
+.table td{padding:10px; border-bottom:1px solid #edf3f8; vertical-align:top}
 .table tr:last-child td{border-bottom:none}
 .neg{color:var(--low); font-weight:700; font-variant-numeric:tabular-nums}
 .table-note{font-size:11.5px; color:var(--muted); margin:12px 0 0; line-height:1.5}
 
-.reco-card{background:linear-gradient(180deg,#fbfdfd,#f7fafb); border-color:#dbe6e7}
+.reco-card{background:linear-gradient(180deg,var(--brand-tint),#f6fbfe); border-color:var(--brand-tint-2)}
 .reco{font-size:13px; line-height:1.75; color:var(--ink-2); white-space:pre-line}
 
 .footer{font-size:11px; color:var(--muted); text-align:center; margin-top:28px; line-height:1.6}
@@ -602,6 +621,10 @@ h1,h2{margin:0; letter-spacing:-.01em}
   .header{flex-direction:column; align-items:flex-start}
 }
 @media print{
+  /* The score bars and band chips ARE the information here — a bar printed
+     white says "zero". Force backgrounds through rather than relying on the
+     PDF renderer being called with printBackground. */
+  *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
   body{background:#fff}
   .page{max-width:none; padding:0}
   .card,.header,.stat{break-inside:avoid; box-shadow:none}

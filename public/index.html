@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Speak2Go — COBE / Boost Oral Exam Evaluation</title>
+<link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">S2G</span>
+    <div>
+      <h1>COBE / Boost Oral Exam Evaluation</h1>
+      <p class="sub">Automated evaluation module · Ministry of Education rubric</p>
+    </div>
+  </div>
+  <div id="health" class="health">checking…</div>
+</header>
+
+<main>
+  <!-- ── Student (spec 3.2) ────────────────────────────── -->
+  <section class="card">
+    <div class="card-head">
+      <h2>1 · Student</h2>
+      <span class="spec-tag">Spec §3.2 · Student Object</span>
+    </div>
+    <p class="hint">
+      Field names match the live <code>users</code> collection. The national ID is hashed
+      into <code>student_id</code> before it is stored, logged, or sent to the model —
+      the raw value never leaves this form.
+    </p>
+    <div class="grid-3">
+      <label>
+        <span>First name <em>FirstName</em></span>
+        <input type="text" id="firstName" value="Noa" />
+      </label>
+      <label>
+        <span>Last name <em>LastName</em></span>
+        <input type="text" id="lastName" value="Ben-David" />
+      </label>
+      <label>
+        <span>National ID <em>IDNumber</em> · hashed</span>
+        <input type="text" id="idNumber" placeholder="9 digits" value="123456789" />
+      </label>
+      <label>
+        <span>Grade <em>StudentGrade</em></span>
+        <input type="text" id="studentGrade" value="10" />
+      </label>
+      <label>
+        <span>Class <em>StudentMakbila</em></span>
+        <input type="text" id="studentMakbila" value="3" />
+      </label>
+      <label>
+        <span>School symbol <em>SemelMosad</em></span>
+        <input type="text" id="semelMosad" value="648154" />
+      </label>
+      <label class="span-3">
+        <span>School name <em>clients.Name, joined on SemelMosad</em></span>
+        <input type="text" id="schoolName" value="Demo High School" />
+      </label>
+    </div>
+    <div id="studentPreview" class="obj-preview"></div>
+  </section>
+
+  <!-- ── Exam (spec 3.1) ───────────────────────────────── -->
+  <section class="card">
+    <div class="card-head">
+      <h2>2 · Exam</h2>
+      <span class="spec-tag">Spec §3.1 · Exam Object</span>
+    </div>
+    <div class="grid-3">
+      <label>
+        <span>Level</span>
+        <select id="level"></select>
+      </label>
+      <label>
+        <span>Exam name</span>
+        <input type="text" id="examName" value="Simulation 2024 COBE FP" />
+      </label>
+      <label>
+        <span>Date executed</span>
+        <input type="date" id="dateExecuted" />
+      </label>
+      <label class="span-3">
+        <span>Description <em>date conducted, context</em></span>
+        <input type="text" id="examDescription" value="Practice run, evaluation module test" />
+      </label>
+    </div>
+    <div id="levelNotice"></div>
+    <div class="notice subtle" id="examFlagNotice">
+      <strong>exam_lesson flag:</strong> spec §2 routes lessons "flagged with the Exam parameter"
+      to this module, but no such flag exists in <code>lessonDefinitions</code> —
+      <code>exam</code>, <code>isExam</code>, <code>exam_lesson</code> and <code>examLesson</code>
+      all match zero documents. Anything reaching this module was routed deliberately, so
+      <code>exam_lesson</code> is recorded as <code>1 (assumed)</code> until Speak2Go adds the field.
+    </div>
+  </section>
+
+  <!-- ── Answers ───────────────────────────────────────── -->
+  <section class="card">
+    <div class="card-head">
+      <h2>3 · Student answers</h2>
+      <button class="btn ghost" id="btnPickAll">Fetch from platform</button>
+    </div>
+    <p class="hint">
+      One slot per exam question. Leave a slot empty and it is treated as unattempted —
+      it forfeits its points rather than being dropped from the total.
+    </p>
+    <div id="slots" class="slots"></div>
+  </section>
+
+  <!-- ── Part C reference ──────────────────────────────── -->
+  <section class="card">
+    <div class="card-head">
+      <h2>4 · Part C reference clip</h2>
+      <span class="spec-tag">phases.Conversation.videoPath</span>
+    </div>
+    <p class="hint">
+      Transcript of the clip the student watched, used as ground truth when scoring Part C
+      content accuracy. In production the clip comes from
+      <code>lessonDefinitions.phases.Conversation.videoPath</code>, present on 140 of 160
+      COBE/Boost lessons — transcribing it automatically is the remaining piece here.
+    </p>
+    <textarea id="partCTranscript" rows="5"></textarea>
+  </section>
+
+  <!-- ── Run ───────────────────────────────────────────── -->
+  <section class="card run-card">
+    <div>
+      <h2>5 · Run evaluation</h2>
+      <p class="hint warn">
+        Calls Deepgram + OpenAI for every answer — this costs API credits and takes a few minutes.
+      </p>
+    </div>
+    <button class="btn primary" id="btnRun">Run full exam</button>
+  </section>
+
+  <!-- ── Progress ──────────────────────────────────────── -->
+  <section class="card hidden" id="progressCard">
+    <h2>Progress</h2>
+    <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    <p id="progressLabel" class="progress-label">Starting…</p>
+  </section>
+
+  <!-- ── Results ───────────────────────────────────────── -->
+  <div id="results" class="hidden"></div>
+</main>
+
+<!-- ── Recording picker ────────────────────────────────── -->
+<div class="modal hidden" id="pickModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>Fetch recordings</h2>
+      <button class="btn ghost" id="pickClose">Close</button>
+    </div>
+    <div class="notice" id="pickNotice"></div>
+    <div id="pickBody" class="s3-body">Loading…</div>
+  </div>
+</div>
+
+<script src="/app.js"></script>
+</body>
+</html>

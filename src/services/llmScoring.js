@@ -70,7 +70,7 @@ INSTRUCTIONS:
 - Additionally, check the transcript for three specific issues that trigger automatic deductions regardless of rubric score (per Ministry of Education policy):
   1. foul_language: true if the transcript contains cursing, swearing, or explicit foul language
   2. non_english: true if the answer is substantially in a language other than English (religious holidays and national celebration names in another language are allowed and should NOT trigger this)
-  3. unintelligible: true if the transcript is largely incoherent, garbled, or nonsensical (not the same as merely short or low-scoring — an answer can be short and still perfectly intelligible)
+  3. unintelligible: true ONLY if the transcript cannot be understood at all — garbled, nonsensical, or word salad. This is about COMPREHENSIBILITY, not quality. Set it to false if you can follow what the student meant, however weak the answer is. In particular, do NOT set it for an answer that is merely short, poorly developed, thin on detail, off-topic, or badly organised — those are already penalised through the rubric criteria above, and flagging them here would deduct twice for the same weakness.
 - Return ONLY valid JSON, no markdown, no commentary, in exactly this shape:
 
 {
@@ -98,6 +98,13 @@ async function scoreQuestionAgainstRubric({ questionText, transcript, audioMetri
     response = await getClient().chat.completions.create({
       model: MODEL,
       temperature: 0,
+      // temperature:0 narrows sampling but is not a determinism guarantee —
+      // the same audio has come back 49.50 on one run and 0.00 on the next.
+      // A fixed seed asks the API for reproducible sampling on top of that.
+      // Best-effort (OpenAI documents it as such), so it is a second line of
+      // defence, not the fix: the real safeguard is the rubric cross-check in
+      // applyPenalties, which stops a flag flip from costing a whole answer.
+      seed: 1,
       response_format: { type: "json_object" },
       messages: [
         { role: "system", content: "You are a strict, consistent rubric-based exam evaluator. Always return valid JSON only." },

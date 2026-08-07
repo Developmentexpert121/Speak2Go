@@ -8,6 +8,11 @@ node_modules/
 # Local exam persistence (fileStore.js) — real student data, not source
 data/
 
+# Output of test/run_client_sample.js. The client's sample recordings are named
+# by student e-mail whose local part is the national ID, so this file carries
+# real student identifiers next to their transcripts and grades.
+test/client_sample_results*.json
+
 # Generated report artefacts
 test/sample_report.html
 test/sample_report.pdf

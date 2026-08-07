@@ -1,0 +1,299 @@
+/* Palette taken from the Speak2Go logo: the vivid sky blue of its field, the
+   charcoal of the "2" and the circle mark, and its white lettering.
+
+   The blue is deliberately used at three depths. #17ADF2 is the logo colour
+   itself and is only ever used as a FILL (bars, chips, the dial, borders) —
+   white text on it lands around 2.4:1, far below the 4.5:1 AA floor, so it
+   can never carry small text. --brand-600 backs the top bar, where white text
+   clears AA. --brand-700 is the only blue used for text on white. Grades get
+   read off this screen and disputed, so legibility outranks brand purity. */
+:root {
+  --brand:      #17adf2;   /* logo blue — fills, borders, accents only */
+  --brand-600:  #0b8fd6;   /* top bar, hover states */
+  --brand-700:  #0a6e9e;   /* blue text on white, primary button */
+  --brand-tint: #e9f6fe;   /* washes */
+  --brand-tint-2: #cbe8fa;
+
+  --ink:    #1f2730;       /* headings — the logo's charcoal */
+  --ink-2:  #46545f;       /* body copy */
+  --muted:  #667582;       /* secondary text, 5:1 on white */
+
+  --bg:      #f2f7fb;
+  --panel:   #ffffff;
+  --panel-2: #f6fafd;
+  --line:    #dde8f1;
+
+  --good: #12925f;
+  --warn: #b0730a;
+  --bad:  #d0402f;
+
+  --good-bg: #e6f6ef;
+  --warn-bg: #fdf4e3;
+  --bad-bg:  #fdedeb;
+
+  --shadow: 0 1px 2px rgba(31, 39, 48, .05), 0 4px 14px rgba(31, 39, 48, .05);
+  --radius: 12px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink-2);
+  font: 15px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── top bar ─────────────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, var(--brand) 0%, var(--brand-600) 55%, #0778b4 100%);
+  color: #fff;
+  position: sticky; top: 0; z-index: 20;
+  box-shadow: 0 2px 12px rgba(10, 110, 158, .22);
+}
+.brand { display: flex; align-items: center; gap: 14px; }
+/* White tile with blue lettering, the same figure/ground flip as the logo. */
+.logo {
+  width: 42px; height: 42px; border-radius: 11px;
+  background: #fff; color: var(--brand-600);
+  display: grid; place-items: center; font-weight: 800; font-size: 13px; letter-spacing: .3px;
+  box-shadow: 0 1px 3px rgba(7, 60, 88, .25);
+}
+.topbar h1 { font-size: 17px; margin: 0; color: #fff; font-weight: 650; letter-spacing: .1px; }
+.sub { margin: 2px 0 0; color: rgba(255,255,255,.86); font-size: 13px; }
+.health { font-size: 12.5px; color: rgba(255,255,255,.9); }
+.health .ok  { color: #c9f4e2; }
+.health .bad { color: #ffd7d1; }
+.health .warn-t { color: #ffe9bd; }
+
+main { max-width: 1040px; margin: 26px auto 80px; padding: 0 20px; display: grid; gap: 18px; }
+
+/* ── cards ───────────────────────────────────────────── */
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+}
+.card h2 { font-size: 15px; margin: 0 0 12px; letter-spacing: .2px; color: var(--ink); }
+.card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
+.card-head h2 { margin: 0; }
+.hint { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+.hint.warn { color: var(--warn); }
+.hint code, .notice code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .92em; }
+.run-card { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
+.run-card h2 { margin-bottom: 4px; }
+.run-card .hint { margin: 0; }
+
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+.span-3 { grid-column: 1 / -1; }
+label { display: grid; gap: 6px; font-size: 13px; color: var(--ink-2); font-weight: 550; }
+/* The real Mongo field name, shown under each label so the mapping from this
+   form to the platform schema is visible rather than documented elsewhere. */
+label em {
+  font-style: normal; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px; color: var(--brand-700); font-weight: 400; margin-left: 4px;
+}
+
+input[type=text], input[type=date], select, textarea {
+  background: #fff; color: var(--ink);
+  border: 1px solid var(--line); border-radius: 8px;
+  padding: 10px 12px; font: inherit; font-size: 14px; width: 100%;
+  transition: border-color .15s, box-shadow .15s;
+}
+input[type=text]:hover, select:hover, textarea:hover { border-color: #c3d6e4; }
+textarea { resize: vertical; line-height: 1.5; }
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(23, 173, 242, .18);
+}
+
+/* ── buttons ─────────────────────────────────────────── */
+.btn {
+  border: 1px solid var(--line); background: #fff; color: var(--ink-2);
+  padding: 9px 16px; border-radius: 8px; font: inherit; font-size: 13.5px; font-weight: 550;
+  cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.btn:hover { border-color: var(--brand); color: var(--brand-700); background: var(--brand-tint); }
+.btn.primary {
+  background: var(--brand-700); border-color: var(--brand-700); color: #fff;
+  font-weight: 600; padding: 11px 22px;
+  box-shadow: 0 1px 3px rgba(10, 110, 158, .3);
+}
+.btn.primary:hover { background: #085d86; border-color: #085d86; color: #fff; }
+.btn.primary:disabled { opacity: .45; cursor: not-allowed; background: var(--brand-700); }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 6px 11px; font-size: 12.5px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+
+/* ── answer slots ────────────────────────────────────── */
+.slots { display: grid; gap: 12px; }
+.slot {
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 14px 16px; background: var(--panel-2);
+  transition: border-color .15s, background .15s;
+}
+.slot.filled { border-color: rgba(18, 146, 95, .45); background: var(--good-bg); }
+.slot-top { display: flex; align-items: center; gap: 12px; }
+.qid {
+  background: var(--brand-tint); border: 1px solid var(--brand-tint-2); color: var(--brand-700);
+  padding: 3px 9px; border-radius: 6px; font-weight: 700; font-size: 12.5px; min-width: 34px; text-align: center;
+}
+.slot-desc { flex: 1; font-size: 13.5px; color: var(--ink); }
+.slot-pts { color: var(--muted); font-size: 12.5px; }
+.slot-actions { display: flex; gap: 8px; align-items: center; }
+.slot-file { margin-top: 10px; font-size: 12.5px; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.slot-file .name { color: var(--good); word-break: break-all; font-weight: 550; }
+.qtext { margin-top: 10px; }
+.qtext summary { cursor: pointer; color: var(--muted); font-size: 12.5px; }
+.qtext textarea { margin-top: 8px; }
+input[type=file] { display: none; }
+
+/* ── progress ────────────────────────────────────────── */
+.progress-track { height: 8px; background: var(--brand-tint); border-radius: 99px; overflow: hidden; }
+.progress-fill { height: 100%; width: 0; background: linear-gradient(90deg, var(--brand), var(--brand-600)); transition: width .4s ease; }
+.progress-label { color: var(--muted); font-size: 13px; margin: 10px 0 0; }
+
+/* ── results ─────────────────────────────────────────── */
+#results { display: grid; gap: 18px; }
+.score-hero { display: flex; align-items: center; gap: 28px; }
+.dial { position: relative; width: 132px; height: 132px; flex: none; }
+.dial svg { transform: rotate(-90deg); }
+.dial-val {
+  position: absolute; inset: 0; display: grid; place-items: center;
+  font-size: 27px; font-weight: 700;
+}
+.hero-meta h3 { margin: 0 0 6px; font-size: 20px; color: var(--ink); }
+.hero-meta p { margin: 0; color: var(--muted); font-size: 13.5px; }
+.pill { display: inline-block; padding: 3px 10px; border-radius: 99px; font-size: 12px; font-weight: 600; }
+.pill.good { background: var(--good-bg); color: var(--good); }
+.pill.warn { background: var(--warn-bg); color: var(--warn); }
+.pill.bad  { background: var(--bad-bg);  color: var(--bad); }
+
+.q-card { border: 1px solid var(--line); border-radius: 10px; background: var(--panel-2); padding: 15px 17px; }
+.q-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.q-head .grow { flex: 1; color: var(--ink); }
+.q-score { font-size: 19px; font-weight: 700; }
+/* The "/100" rides on the score itself so it is never read against the point
+   value beside it — the two are different scales. */
+.q-of { font-size: 12px; font-weight: 600; opacity: .65; }
+.q-meta { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
+.q-transcript {
+  margin-top: 10px; background: #fff; border: 1px solid var(--line);
+  border-radius: 8px; padding: 10px 12px; font-size: 13px; color: var(--ink-2);
+  max-height: 150px; overflow: auto; line-height: 1.6;
+}
+.crit { margin-top: 12px; display: grid; gap: 7px; }
+.crit-row { display: grid; grid-template-columns: 190px 1fr 42px; gap: 10px; align-items: center; font-size: 12.5px; }
+.bar { height: 7px; background: #e6eef5; border-radius: 99px; overflow: hidden; }
+.bar i { display: block; height: 100%; border-radius: 99px; }
+.ded { margin-top: 10px; display: grid; gap: 6px; }
+.ded-item {
+  font-size: 12.5px; color: #93261a; background: var(--bad-bg);
+  border: 1px solid rgba(208, 64, 47, .28); border-radius: 7px; padding: 7px 10px;
+}
+.cov-note { font-size: 12.5px; color: var(--warn); margin-top: 8px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .4px; }
+tbody tr:last-child td { border-bottom: none; }
+.recs { line-height: 1.65; font-size: 14px; color: var(--ink-2); }
+
+/* ── modal ───────────────────────────────────────────── */
+.modal { position: fixed; inset: 0; background: rgba(19, 42, 58, .45); backdrop-filter: blur(2px); display: grid; place-items: center; z-index: 50; padding: 20px; }
+.modal-box {
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
+  width: min(820px, 100%); max-height: 84vh; overflow: auto; padding: 20px 22px;
+  box-shadow: 0 18px 50px rgba(15, 40, 60, .25);
+}
+.modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.modal-head h2 { margin: 0; font-size: 16px; color: var(--ink); }
+.notice {
+  background: var(--warn-bg); border: 1px solid rgba(176, 115, 10, .3);
+  color: #7d5406; border-radius: 8px; padding: 11px 13px; font-size: 12.5px; margin-bottom: 14px;
+}
+.notice code { background: rgba(176, 115, 10, .12); padding: 1px 5px; border-radius: 4px; }
+.rec-row {
+  display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px;
+}
+.rec-row .grow { flex: 1 1 auto; min-width: 0; }
+.rec-row .q { color: var(--muted); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Without this the global `select { width:100% }` makes the dropdown demand the
+   whole row as a flex item, collapsing the question text to one word per line. */
+.rec-row select { width: auto; flex: 0 0 76px; padding: 6px 8px; font-size: 12.5px; }
+.rec-row .qtxt { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lesson-h { margin: 16px 0 4px; font-size: 13px; color: var(--brand-700); font-weight: 600; }
+
+.err {
+  background: var(--bad-bg); border: 1px solid rgba(208, 64, 47, .35);
+  color: #93261a; padding: 12px 14px; border-radius: 8px; font-size: 13.5px;
+}
+.hidden { display: none !important; }
+
+/* ── spec-object panels ──────────────────────────────── */
+/* The Exam and Student objects are the module's actual output contract, so
+   they get shown verbatim rather than being folded into prose. */
+.spec-tag {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px;
+  color: var(--brand-700); background: var(--brand-tint);
+  border: 1px solid var(--brand-tint-2); border-radius: 20px; padding: 3px 10px;
+}
+.obj-preview { margin-top: 14px; }
+.obj-two { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.obj-title { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin-bottom: 8px; }
+.obj-grid {
+  display: grid; grid-template-columns: minmax(120px, auto) 1fr; gap: 6px 14px;
+  font-size: 12.5px; align-items: baseline;
+}
+.obj-grid > span { color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+/* justify-self keeps these hugging their content. Stretched to the full
+   column they read as empty input fields, but they are derived read-only
+   values — the form above is what you type into. */
+.obj-grid > code {
+  background: var(--panel-2); border: 1px solid var(--line); color: var(--ink);
+  border-radius: 4px; padding: 2px 7px; justify-self: start; max-width: 100%;
+  overflow-wrap: anywhere; font-size: 12px;
+}
+
+.notice.subtle {
+  background: var(--panel-2); border-color: var(--line); color: var(--muted);
+}
+.notice.subtle code { background: #e9eff5; }
+.notice.blocked {
+  background: var(--bad-bg); border-color: rgba(208, 64, 47, .32); color: #93261a;
+}
+.notice.blocked code { background: rgba(208, 64, 47, .1); }
+
+/* ── picker additions ────────────────────────────────── */
+.student-group { border-bottom: 1px solid var(--line); padding: 6px 0; }
+.student-group > summary { cursor: pointer; padding: 8px 0; font-size: 13.5px; display: flex; gap: 10px; align-items: baseline; color: var(--ink); }
+.student-group > summary .q { color: var(--muted); font-size: 12px; }
+.band { border-radius: 4px; padding: 1px 6px; font-size: 11px; margin-left: 4px; font-weight: 550; }
+.band.ok  { background: var(--good-bg); color: var(--good); }
+.band.bad { background: var(--bad-bg);  color: var(--bad); }
+
+.slot-warn {
+  margin-top: 8px; font-size: 12px; color: #7d5406;
+  background: var(--warn-bg); border: 1px solid rgba(176, 115, 10, .28);
+  border-radius: 6px; padding: 7px 10px;
+}
+
+.hero-sub { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+.hero-actions { display: flex; flex-direction: column; gap: 8px; margin-left: auto; }
+.hero-actions .btn { text-align: center; text-decoration: none; color: var(--ink-2); }
+.hero-actions .btn:hover { color: var(--brand-700); }
+
+@media (max-width: 720px) {
+  .grid-2, .grid-3, .obj-two, .crit-row { grid-template-columns: 1fr; }
+  .score-hero { flex-direction: column; text-align: center; }
+  .hero-actions { margin-left: 0; width: 100%; }
+  .run-card { flex-direction: column; align-items: stretch; }
+  .topbar { padding: 14px 18px; }
+}

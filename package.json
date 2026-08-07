@@ -5,6 +5,8 @@
   "main": "src/pipeline/evaluateExam.js",
   "type": "commonjs",
   "scripts": {
+    "start": "node server/index.js",
+    "dev": "node --watch server/index.js",
     "test:stt": "node test/run_stt.js",
     "test:pipeline": "node test/run_pipeline.js",
     "test:full-exam": "node test/run_full_exam.js",
@@ -15,6 +17,8 @@
   "dependencies": {
     "@deepgram/sdk": "^3.9.0",
     "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "multer": "^2.2.0",
     "openai": "^4.60.0",
     "puppeteer": "^23.3.0"
   }

@@ -27,8 +27,14 @@ const { getBlueprint, getExamTotalPoints } = require("../config/examBlueprint");
  *   would otherwise report "2" as unattempted on a 2023 exam where the
  *   student answered 2a and 2b.
  */
-async function evaluateFullExam({ questions, level, examTotalPoints, examLayout }) {
+async function evaluateFullExam({ questions, level, examTotalPoints, examLayout, onProgress }) {
   assertWeightsAreUsable(questions, level);
+
+  // Optional progress reporting. A full exam is ~5 STT + ~5 LLM calls and can
+  // run for several minutes, so any UI driving this needs to know where it is.
+  // No-op when the caller supplies nothing, so existing callers are unaffected.
+  const emit = typeof onProgress === "function" ? onProgress : () => {};
+  let completed = 0;
 
   const totalPoints = examTotalPoints ?? getExamTotalPoints(level);
   const groups = groupQuestions(questions, level); // { "1": [1a, 1b], "2": [2], ... }
@@ -42,12 +48,17 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout 
     const priorContext = [];
 
     for (const q of groupList) {
+      emit({
+        stage: "evaluating",
+        question_id: q.question_id,
+        completed,
+        total: questions.length,
+      });
+
       const result = await evaluateQuestion({
         audioFilePath: q.audioFilePath,
         questionText: q.question_text,
         level,
-        // evaluateQuestion doesn't currently accept priorContext directly —
-        // see note below on wiring this through if not already done.
         priorContext: priorContext.length ? [...priorContext] : undefined,
         // For Part C questions this is the transcript of the clip the student
         // just watched; null for Parts A/B (ignored by evaluateQuestion).
@@ -66,6 +77,14 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout 
         question_id: q.question_id,
         question_text: q.question_text,
         transcript: result.transcript,
+      });
+
+      completed += 1;
+      emit({
+        stage: "question_done",
+        question_id: q.question_id,
+        completed,
+        total: questions.length,
       });
     }
   }

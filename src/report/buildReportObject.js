@@ -26,11 +26,20 @@ function buildReportObject(examResult, teacherRecommendations) {
     }))
   );
 
+  // Not part of spec 3.6, but a grade that was nearly zeroed and then wasn't
+  // is the first thing anyone appealing a result will ask about. Carried
+  // alongside the spec fields rather than inside them, so the Report Object
+  // still matches the spec for consumers that only read the four keys.
+  const suppressed_flags = examResult.question_results.flatMap((r) =>
+    (r.suppressed_flags || []).map((s) => ({ question_id: r.question_id, ...s }))
+  );
+
   return {
     overall_score: examResult.overall_score,
     question_scores,
     deductions_table,
     teacher_recommendations: teacherRecommendations,
+    suppressed_flags,
   };
 }
 

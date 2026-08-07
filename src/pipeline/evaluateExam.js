@@ -58,7 +58,7 @@ async function evaluateQuestion({ audioFilePath, questionText, level, priorConte
   // 5. Penalty layer (deterministic business rules, separate from the LLM —
   //    content_flags come FROM the LLM's read of the transcript, but the
   //    100%-deduction decision itself stays a deterministic rule here)
-  const { finalScore, deductions } = applyPenalties({
+  const { finalScore, deductions, suppressedFlags } = applyPenalties({
     rawScore: questionResult.raw_score,
     audioMetrics,
     transcript: sttResult.transcript,
@@ -74,6 +74,10 @@ async function evaluateQuestion({ audioFilePath, questionText, level, priorConte
     criterion_breakdown: questionResult.criterion_breakdown,
     raw_score: questionResult.raw_score,
     deductions,
+    // Flags the evaluator raised that the rubric contradicted. Empty on
+    // almost every answer; non-empty means this grade was nearly zeroed and
+    // the operator should be able to see why it wasn't.
+    suppressed_flags: suppressedFlags || [],
     final_question_score: finalScore,
   };
 }

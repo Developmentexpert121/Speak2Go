@@ -31,9 +31,9 @@ function createJob(examId, meta = {}) {
     report: null,
     // Spec section 3.1 / 3.2 objects. Populated up front from the submission
     // so the UI can show who is being graded while the run is still going,
-    // then patched with final_score and the report urls when it finishes.
-    exam_object: null,
-    student_object: null,
+    // then patched with finalScore and the report urls when it finishes.
+    examObject: null,
+    studentObject: null,
     error: null,
     createdAt: new Date().toISOString(),
     finishedAt: null,
@@ -61,19 +61,19 @@ function getJob(examId) {
 
 function listJobs() {
   return [...jobs.values()]
-    .map(({ examId, status, stage, createdAt, finishedAt, meta, result, student_object, exam_object }) => ({
+    .map(({ examId, status, stage, createdAt, finishedAt, meta, result, studentObject, examObject }) => ({
       examId,
       status,
       stage,
       createdAt,
       finishedAt,
-      // Never the raw IDNumber — student_object.student_id is already hashed.
-      studentName: student_object?.full_name || meta?.studentName || null,
-      studentId: student_object?.student_id || null,
-      schoolId: student_object?.school_id || null,
+      // Never the raw IDNumber — studentObject.studentId is already hashed.
+      studentName: studentObject?.fullName || meta?.studentName || null,
+      studentId: studentObject?.studentId || null,
+      schoolId: studentObject?.schoolId || null,
       level: meta?.level || null,
-      cefr_level: exam_object?.cefr_level || null,
-      overall_score: result?.overall_score ?? null,
+      cefrLevel: examObject?.cefrLevel || null,
+      overallScore: result?.overall_score ?? null,
     }))
     .sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt)));
 }

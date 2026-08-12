@@ -6,19 +6,24 @@
  * read-only survey of `ezspeak-net` found every one of them already present,
  * just spelled differently and spread across three collections:
  *
- *   spec 3.2 field   real location
+ *   output field     real location
  *   --------------   ----------------------------------------------------
- *   student_id       users.IDNumber        (Israeli ID — indexed, real PII)
- *   full_name        users.FirstName + users.LastName
- *   grade_class      users.StudentGrade + users.StudentMakbila,
+ *   studentId        users.IDNumber        (Israeli ID — indexed, real PII)
+ *   fullName         users.FirstName + users.LastName
+ *   gradeClass       users.StudentGrade + users.StudentMakbila,
  *                    or users.ClassID[] -> classes.grade / classes.name
- *   school_id        users.SemelMosad     (also on clients.SemelMosad)
- *   school_name      clients.Name, joined on SemelMosad
+ *   schoolId         users.SemelMosad     (also on clients.SemelMosad)
+ *   schoolName       clients.Name, joined on SemelMosad
  *
  * So section 3.2 is a join, not a new data model. This module encodes that
  * mapping in one place so the rest of the app never touches raw Mongo names.
  *
- * ON HASHING: the spec asks for student_id to be "anonymized/hashed for
+ * ON CASING: the spec doc writes these fields in snake_case, but the client
+ * asked (12 Aug 2026) for camelCase on the wire, so the doc's `full_name`
+ * ships as `fullName`. The PascalCase names above are Speak2Go's own Mongo
+ * columns and are INPUTS — they keep their original spelling.
+ *
+ * ON HASHING: the spec asks for the student id to be "anonymized/hashed for
  * privacy while maintaining 1:1 uniqueness". IDNumber is a national ID
  * number, so it must never reach a log, a report, or the LLM prompt. We
  * hash it with a salted SHA-256: deterministic (so the 1:1 mapping holds
@@ -29,18 +34,43 @@
 
 const crypto = require("crypto");
 
-/** Spec section 1: targeted CEFR proficiency levels. */
+/**
+ * Spec section 1: targeted CEFR proficiency levels.
+ *
+ * 3-point Boost (CEFR A2) is deliberately absent. The client confirmed on
+ * 12 Aug 2026 that Boost is a different exam with different rubrics and is a
+ * separate project, so it is out of scope here. An unknown level now falls
+ * through to a null cefr_level rather than silently grading against a rubric
+ * that was never written for it.
+ */
 const CEFR_BY_LEVEL = {
-  "5_UNITS_B2": "B2",
-  "4_UNITS_B1": "B1",
-  "3_UNITS_BOOST": "A2",
+  "5_UNITS_CEFR_B2": "B2",
+  "4_UNITS_CEFR_B1": "B1",
 };
 
 const LEVEL_LABEL = {
-  "5_UNITS_B2": "5 Points (COBE)",
-  "4_UNITS_B1": "4 Points (COBE)",
-  "3_UNITS_BOOST": "3 Points (Boost)",
+  "5_UNITS_CEFR_B2": "5 Points (COBE)",
+  "4_UNITS_CEFR_B1": "4 Points (COBE)",
 };
+
+/**
+ * Level codes as the spec doc spells them, mapped from the shorter forms this
+ * codebase used before the doc was available.
+ *
+ * Kept as a tolerant front door rather than a hard rename: the platform may
+ * still have the old strings baked into a config somewhere, and rejecting an
+ * otherwise-valid exam over a missing "CEFR_" would be a bad trade. Everything
+ * downstream of normalizeLevel() sees only the canonical spelling.
+ */
+const LEVEL_ALIASES = {
+  "5_UNITS_B2": "5_UNITS_CEFR_B2",
+  "4_UNITS_B1": "4_UNITS_CEFR_B1",
+};
+
+function normalizeLevel(level) {
+  const raw = String(level ?? "").trim();
+  return LEVEL_ALIASES[raw] || raw;
+}
 
 const ID_SALT = process.env.STUDENT_ID_SALT || "";
 let warnedAboutSalt = false;
@@ -86,20 +116,20 @@ function buildStudentObject(src = {}) {
     grade && makbila ? `${grade}/${makbila}` : grade || src.className || src.grade_class || null;
 
   return {
-    student_id: hashStudentId(src.IDNumber ?? src.student_id_raw),
-    full_name: fullName,
-    grade_class: gradeClass,
-    school_name: src.schoolName ?? src.school_name ?? null,
-    school_id: (src.SemelMosad ?? src.school_id ?? null) || null,
+    studentId: hashStudentId(src.IDNumber ?? src.studentIdRaw ?? src.student_id_raw),
+    fullName,
+    gradeClass,
+    schoolName: src.schoolName ?? src.school_name ?? null,
+    schoolId: (src.SemelMosad ?? src.schoolId ?? src.school_id ?? null) || null,
   };
 }
 
 /**
  * Spec section 3.1 Exam Object.
  *
- * `exam_lesson` deserves a note. The spec (section 2) says lessons "flagged
- * with the 'Exam' parameter are routed to the module", and 3.1 defines
- * exam_lesson as a boolean on the lesson. That flag does not exist in
+ * `examLesson` deserves a note. The spec (section 2) says lessons "flagged
+ * with the 'Exam' parameter are routed to the module", and 3.1 defines it
+ * as a boolean on the lesson. That flag does not exist in
  * production: `exam`, `isExam`, `exam_lesson` and `examLesson` all match zero
  * documents in `lessonDefinitions`. Until Speak2Go adds it, anything reaching
  * this module was routed here deliberately, so we record `1` and mark the
@@ -117,26 +147,30 @@ function buildExamObject({
   examLessonFlag,
   examLessonSource,
 }) {
+  const canonicalLevel = normalizeLevel(level);
+
   return {
-    exam_lesson: examLessonFlag === undefined ? 1 : examLessonFlag,
-    exam_lesson_source:
+    examLesson: examLessonFlag === undefined ? 1 : examLessonFlag,
+    examLessonSource:
       examLessonSource || "assumed (flag absent in lessonDefinitions)",
-    exam_id: examId,
+    examId,
     name: name || null,
     description: description || null,
-    level,
-    level_label: LEVEL_LABEL[level] || level,
-    cefr_level: CEFR_BY_LEVEL[level] || null,
-    date_executed: dateExecuted || new Date().toISOString(),
-    final_score: finalScore,
-    report_html_url: reportHtmlUrl,
-    report_pdf_url: reportPdfUrl,
+    level: canonicalLevel,
+    levelLabel: LEVEL_LABEL[canonicalLevel] || canonicalLevel,
+    cefrLevel: CEFR_BY_LEVEL[canonicalLevel] || null,
+    dateExecuted: dateExecuted || new Date().toISOString(),
+    finalScore,
+    reportHtmlUrl,
+    reportPdfUrl,
   };
 }
 
 module.exports = {
   CEFR_BY_LEVEL,
   LEVEL_LABEL,
+  LEVEL_ALIASES,
+  normalizeLevel,
   hashStudentId,
   buildStudentObject,
   buildExamObject,

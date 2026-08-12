@@ -424,7 +424,7 @@ function renderQuestionCard(r) {
 }
 
 function renderDeductions(report) {
-  const rows = report.deductions_table || [];
+  const rows = report.deductionsTable || [];
   return `
   <section class="card">
     <div class="card-head"><h2>Deductions</h2></div>
@@ -436,7 +436,7 @@ function renderDeductions(report) {
               ${rows
                 .map(
                   (d) => `<tr>
-                    <td class="mono">Q${esc(d.question_id)}</td>
+                    <td class="mono">Q${esc(d.questionId)}</td>
                     <td>${esc(d.reason)}</td>
                     <td class="right neg">−${esc(d.deductionPct)}%</td>
                   </tr>`
@@ -455,7 +455,7 @@ function renderRecommendations(report) {
   return `
   <section class="card reco-card">
     <div class="card-head"><h2>Teacher recommendations</h2></div>
-    <div class="reco">${esc(report.teacher_recommendations) || "—"}</div>
+    <div class="reco">${esc(report.teacherRecommendations) || "—"}</div>
   </section>`;
 }
 

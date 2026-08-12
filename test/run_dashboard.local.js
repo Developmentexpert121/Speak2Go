@@ -15,7 +15,7 @@ const { renderReportPdf } = require("../src/report/renderReportPdf");
  *   node test/run_dashboard.js --html   -> HTML only (skips Chromium)
  */
 const MOCK_EXAM_RESULT = {
-  level: "5_UNITS_B2",
+  level: "5_UNITS_CEFR_B2",
   overall_score: 58.06,
   points_earned: 58.06,
   points_possible: 100,

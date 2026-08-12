@@ -1,19 +1,21 @@
 /**
- * Renders and serves the HTML and PDF reports, so that spec 3.1's
- * `report_html_url` and `report_pdf_url` can hold real, fetchable values.
+ * Renders and serves the HTML and PDF reports, so that the Exam Object's
+ * `reportHtmlUrl` and `reportPdfUrl` can hold real, fetchable values.
  *
  * Spec section 2 wants both formats: HTML "for inline UI rendering" and a
- * "downloadable PDF". Both renderers already existed in src/report — they were
- * simply never reachable from the server, so those two URL fields had nowhere
- * to point.
+ * "downloadable PDF".
  *
- * WHERE THE FILES LIVE. Not in a database (the client asked for no DB writes)
- * and not in S3 (no credentials). We hold the HTML in memory and spill only
- * the PDF to a temp directory, because Puppeteer writes to a path rather than
- * a buffer. Both are evicted with the job, so a restart loses them — which is
- * correct for a module whose reports are meant to be handed to a dashboard,
- * not archived here. This is option (a) in the client question: we host, the
- * URLs point at us, and moving to S3 later changes nothing for the caller.
+ * WHERE THE FILES LIVE. Not in a database — the client asked for no DB writes.
+ * When S3 credentials are present the report HTML is uploaded to the client's
+ * bucket and reportHtmlUrl points there; without them we fall back to holding
+ * it in memory and serving it from this process. That fallback is what stops a
+ * missing credential from turning into a failed exam run.
+ *
+ * The PDF spills to a temp directory because Puppeteer writes to a path rather
+ * than a buffer. It is deliberately NOT uploaded: the client asked (11 Aug
+ * 2026) that PDFs not be pre-rendered, since Avinoam generates them on demand
+ * from the HTML. It is still produced locally so the download link keeps
+ * working for anyone using this service directly.
  */
 
 const fs = require("fs");
@@ -23,6 +25,7 @@ const path = require("path");
 const { renderReportHtml } = require("../src/report/renderReportHtml");
 const { renderDashboardHtml } = require("../src/report/renderDashboardHtml");
 const { renderReportPdf } = require("../src/report/renderReportPdf");
+const { uploadReport, isConfigured: s3IsConfigured } = require("./s3ReportStorage");
 
 const OUT_DIR = path.join(os.tmpdir(), "s2g_reports");
 const MAX_REPORTS = 50;
@@ -79,10 +82,19 @@ async function buildReports({ examId, examResult, report, meta }) {
   reports.set(examId, { html, dashboardHtml, pdfPath });
   evictOldest();
 
+  // Publish to the client's bucket when we can. The local URL is kept as the
+  // fallback so the report is always reachable somewhere, and `s3` is returned
+  // alongside it so a caller can tell which one it got.
+  let s3 = null;
+  if (s3IsConfigured()) {
+    s3 = await uploadReport({ examId, body: html });
+  }
+
   return {
-    reportHtmlUrl: `/api/exams/${examId}/report.html`,
+    reportHtmlUrl: s3?.url || `/api/exams/${examId}/report.html`,
     reportPdfUrl: pdfPath ? `/api/exams/${examId}/report.pdf` : null,
     reportDashboardUrl: dashboardHtml ? `/api/exams/${examId}/dashboard.html` : null,
+    s3,
   };
 }
 

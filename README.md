@@ -62,18 +62,20 @@ blueprint handles both shapes and still totals 100.
 
 ### Levels
 
-| Level | CEFR | Status |
-|---|---|---|
-| 5 points | B2 | supported |
-| 4 points | B1 | supported |
-| 3 points (Boost) | A2 | **blocked — no rubric supplied** |
+| Level | CEFR | Level code | Status |
+|---|---|---|---|
+| 5 points | B2 | `5_UNITS_CEFR_B2` | supported |
+| 4 points | B1 | `4_UNITS_CEFR_B1` | supported |
 
-Boost is in the specification but no Boost rubric exists in any document
-supplied so far. The MoE Table of Specs and the scoring sheet both cover COBE
-only, referencing Boost as She'elon 16387 without reproducing its criteria.
-Rather than quietly dropping the level from the dropdown, the API returns it
-with `supported:false` and the reason attached — a guessed rubric would
-produce grades that look official and are not.
+3-point Boost (A2) is **out of scope**. It appeared in an early draft of the
+specification and was carried here for a while as "blocked, awaiting rubric",
+which was wrong: the client confirmed on 12 Aug 2026 that Boost is a different
+exam with its own rubrics and belongs to a separate project. It is not a gap
+in this one, so it has been removed rather than left showing as pending work.
+
+The level codes above are the spec document's spelling. The earlier
+`5_UNITS_B2` / `4_UNITS_B1` forms are still accepted on the way in and
+normalised, so an older caller is not rejected over a missing `CEFR_`.
 
 ---
 
@@ -121,9 +123,13 @@ itself; these are the ones that matter:
 | `DEEPGRAM_API_KEY` | any real run | speech-to-text — **billable** |
 | `OPENAI_API_KEY` | any real run | rubric scoring — **billable** |
 | `STUDENT_ID_SALT` | real student data | see warning below |
-| `OPENAI_MODEL` | optional | defaults to `gpt-4o` |
+| `OPENAI_MODEL` | optional | defaults to `gpt-4o-mini` |
 | `PORT` | optional | defaults to `3000` |
 | `SPEAK2GO_API_URL` / `_TOKEN` | optional | only for pulling recordings from the platform |
+| `WEBHOOK_SIGNING_SECRET` | posting results back | no secret, nothing is sent — see below |
+| `WEBHOOK_ALLOWED_HOSTS` | posting results back | SSRF guard, empty means no deliveries |
+| `AWS_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | uploading report HTML | must be an IAM key, not a console login |
+| `S3_REPORT_BUCKET` / `AWS_REGION` | uploading report HTML | default `oral-exams-s2g` in `us-east-1` |
 
 Generate the salt once:
 
@@ -138,6 +144,54 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 > key — do not "rotate" it as routine hygiene.
 
 `.env` is gitignored and must stay that way. It holds live billable keys.
+
+#### Delivering the result back to Speak2Go
+
+Pass a `callbackUrl` when creating an exam and the finished Report Object is
+POSTed there. Two headers carry the proof:
+
+```
+x-s2g-signature: sha256=<hex>
+x-s2g-timestamp: <unix seconds>
+```
+
+The signature is `HMAC-SHA256(secret, "{timestamp}.{rawBody}")`. The timestamp
+is inside the signed string on purpose — an attacker who captures a valid
+request cannot slide it forward to defeat the 5-minute freshness window,
+because moving it invalidates the signature.
+
+**Verify against the raw request body.** A receiver that checks
+`JSON.stringify(req.body)` will reject any pretty-printed payload, because the
+whitespace is gone by then. In Express that means
+`express.json({ verify: (req, _res, buf) => { req.rawBody = buf } })`.
+`server/webhook.js` exports `verifyRequest()` ready to use on the receiving
+side, and there is a unit test pinning exactly this trap.
+
+Both `WEBHOOK_SIGNING_SECRET` and `WEBHOOK_ALLOWED_HOSTS` must be set. The
+sender fails closed: with no secret it refuses to send rather than send
+unsigned, and with no allowlist it refuses to send at all. The allowlist is
+what stops a caller-supplied `callbackUrl` from pointing this server at
+`169.254.169.254` or anything else inside the network. Non-2xx responses are
+retried only for 429 and 5xx — a 400 or 401 means the request itself is wrong,
+so repeating it just repeats the error. A failed delivery is recorded on the
+job and never fails the exam run.
+
+#### Uploading the report HTML
+
+With AWS credentials present, each report's HTML is written to
+`{prefix}/{yyyy}/{mm}/{examId}/report.html` in the bucket and the Exam
+Object's `reportHtmlUrl` points there — a presigned URL, unless
+`S3_PUBLIC_BASE_URL` says the bucket is fronted by CloudFront. Objects are
+uploaded private and server-side encrypted; no public ACL is set.
+
+Without credentials the HTML is kept in memory and served from this process
+instead, so a missing credential degrades the URL rather than failing the run.
+`GET /api/health` reports which of the two is in effect.
+
+PDFs are deliberately **not** uploaded — the client generates those on demand
+from the HTML. The HTML is written with no external references at all (styles
+inline, no images, fonts or scripts), which is what lets it be opened straight
+from S3 and printed without a server to resolve assets against.
 
 ### 4. Verify the install — without spending anything
 
@@ -181,7 +235,8 @@ audio manually instead of fetching it.
 | Server boots with a keys warning | `.env` missing or not filled in. |
 | `OpenAI request failed using model="…"` | Bad `OPENAI_MODEL`, or the key lacks access to it. The error prints the model string it tried. |
 | PDF endpoint 404s | Report evicted — reports live in memory and are lost on restart. |
-| 422 when starting a run | You selected 3-point Boost, which has no rubric. See **Levels**. |
+| 422 when starting a run | Unsupported level. Only the two in **Levels** can be graded. |
+| Result never reaches your callback | Check `GET /api/health` → `resultCallback`. Delivery fails closed without both a signing secret and an allowlisted host. |
 
 ---
 
@@ -193,10 +248,12 @@ audio manually instead of fetching it.
 npm run test:unit
 ```
 
-54 tests, no network calls, nothing billable. This is the suite to run before
+86 tests, no network calls, nothing billable. This is the suite to run before
 every commit. It covers the parts where a bug silently changes someone's grade:
 score aggregation, coverage deductions, time-based deductions, the penalty
-layer, and HTML escaping.
+layer, and HTML escaping — plus the two places a bug would be invisible rather
+than wrong: the shape of the Report Object handed to Speak2Go, and the webhook
+signature and callback allowlist.
 
 ### Renderer checks — free, offline, no API keys
 
@@ -261,7 +318,20 @@ cannot overwrite a full run.
 
 Runs are asynchronous: `POST /api/exams` returns an `examId` straight away and
 the client polls. A full five-question exam takes a couple of minutes, which is
-far too long to hold an HTTP request open.
+far too long to hold an HTTP request open. Pass a `callbackUrl` in the same
+form and the finished result is POSTed there instead of waiting to be polled —
+see **Delivering the result back to Speak2Go** above.
+
+All output is camelCase, at the client's request (12 Aug 2026). The spec
+document writes these fields in snake_case; the rename happens in
+`buildReportObject.js` and the two spec-object builders, and everything
+upstream of them — the scoring engine, the rubric config, the penalty rules —
+keeps its original spelling. That boundary is deliberate. Three families of
+identifier look like snake_case fields but must never move: rubric
+sub-criterion ids (`sc1_relevancy`), level codes (`5_UNITS_CEFR_B2`), and
+Speak2Go's own Mongo columns (`IDNumber`, `SemelMosad`), which are inputs
+rather than outputs. A unit test walks the whole report tree asserting no key
+contains an underscore, and a second one asserts the rubric ids still do.
 
 Recordings are addressed as `(userEmail, idDetection)` rather than by URL,
 because the S3 bucket is private and the platform resolves the key itself after
@@ -272,7 +342,8 @@ authorising the caller.
 ## Layout
 
 ```
-server/      Express API, job store, exam runner, in-memory report store
+server/      Express API, job store, exam runner, report store,
+             signed webhook delivery, S3 report upload
 public/      Operator dashboard (vanilla JS, no build step)
 src/
   config/    Exam blueprint and the rubric JSON
@@ -332,10 +403,9 @@ which is inherent to the model.
 
 ## Known limitations
 
-- **Boost / 3-point (A2) cannot be graded** — no rubric supplied. Blocked by the client.
 - **No database writes.** Phase 1 is evaluation only; results are not synced back.
-- **Reports are held in memory** and are evicted on restart.
+- **Reports are held in memory** and are evicted on restart, unless S3 upload is configured — the uploaded HTML survives independently of this process.
 - **Part C reference clips are not transcribed automatically.** The clip transcript is passed in manually; only 4 of 33 reference lessons carry usable Part C text.
-- **No webhook callbacks yet** — clients poll.
+- **Report language is English only.** The rubric and the spec document are in English; whether teachers want a Hebrew or bilingual report is still an open question with the client.
 - **The blueprint endpoint is hardcoded** to the standard 5-slot layout. The code handles the split-Part-B shape, but no lesson selector drives it.
 - **`isUnder20Seconds` measures wall-clock duration**, while the rule says "20 seconds *of speech*". Both readings agreed on all 22 sample recordings, but they can diverge on an answer with long silences.

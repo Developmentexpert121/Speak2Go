@@ -99,7 +99,7 @@ const PART_A_ONLY = [
 test("the exam is marked out of 100, not out of what was submitted", async () => {
   // A perfect Part A and nothing else is 25 of the 100 available points.
   // The old code renormalized over submitted weights and returned 100.
-  const result = await evaluateFullExam({ questions: PART_A_ONLY, level: "5_UNITS_B2" });
+  const result = await evaluateFullExam({ questions: PART_A_ONLY, level: "5_UNITS_CEFR_B2" });
   assert.equal(result.overall_score, 25);
   assert.equal(result.points_earned, 25);
   assert.equal(result.points_possible, 100);
@@ -113,14 +113,14 @@ test("skipping a question scores the same as submitting it empty", async () => {
     { question_id: "4", part: "C", description: "Part C", question_text: "q", weight: 25, audioFilePath: "empty.wav" },
   ];
 
-  const skipped = await evaluateFullExam({ questions: PART_A_ONLY, level: "5_UNITS_B2" });
-  const empty = await evaluateFullExam({ questions: submittedEmpty, level: "5_UNITS_B2" });
+  const skipped = await evaluateFullExam({ questions: PART_A_ONLY, level: "5_UNITS_CEFR_B2" });
+  const empty = await evaluateFullExam({ questions: submittedEmpty, level: "5_UNITS_CEFR_B2" });
 
   assert.equal(skipped.overall_score, empty.overall_score);
 });
 
 test("unattempted questions are reported with the points they forfeited", async () => {
-  const result = await evaluateFullExam({ questions: PART_A_ONLY, level: "5_UNITS_B2" });
+  const result = await evaluateFullExam({ questions: PART_A_ONLY, level: "5_UNITS_CEFR_B2" });
   assert.deepEqual(
     result.unattempted_questions.map((q) => [q.question_id, q.points_forfeited]),
     [["2", 25], ["3", 25], ["4", 25]]
@@ -134,7 +134,7 @@ test("a full perfect exam scores exactly 100", async () => {
     { question_id: "3", part: "C", description: "Part C", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
     { question_id: "4", part: "C", description: "Part C", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
   ];
-  const result = await evaluateFullExam({ questions, level: "5_UNITS_B2" });
+  const result = await evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2" });
   assert.equal(result.overall_score, 100);
 });
 
@@ -144,7 +144,7 @@ test("overall_score can never exceed 100 — a missing weight throws instead", a
     { question_id: "2", part: "B", description: "Part B", question_text: "q", audioFilePath: "perfect.wav" }, // no weight
   ];
   await assert.rejects(
-    () => evaluateFullExam({ questions, level: "5_UNITS_B2" }),
+    () => evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2" }),
     /every question needs a numeric `weight`/
   );
 });
@@ -155,7 +155,7 @@ test("weights totalling more than the exam total are rejected", async () => {
     { question_id: "2", part: "B", description: "Part B", question_text: "q", weight: 60, audioFilePath: "perfect.wav" },
   ];
   await assert.rejects(
-    () => evaluateFullExam({ questions, level: "5_UNITS_B2" }),
+    () => evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2" }),
     /exceeds the 100-point exam total/
   );
 });
@@ -165,12 +165,12 @@ test("duplicate question ids are rejected", async () => {
     { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
     { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
   ];
-  await assert.rejects(() => evaluateFullExam({ questions, level: "5_UNITS_B2" }), /duplicate question_id/);
+  await assert.rejects(() => evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2" }), /duplicate question_id/);
 });
 
 test("blueprint totals 100 points for both COBE levels", () => {
-  assert.equal(getExamTotalPoints("5_UNITS_B2"), 100);
-  assert.equal(getExamTotalPoints("4_UNITS_B1"), 100);
+  assert.equal(getExamTotalPoints("5_UNITS_CEFR_B2"), 100);
+  assert.equal(getExamTotalPoints("4_UNITS_CEFR_B1"), 100);
 });
 
 test("maps a real Speak2Go lesson questionList onto the exam blueprint", () => {
@@ -195,7 +195,7 @@ test("maps a real Speak2Go lesson questionList onto the exam blueprint", () => {
     { order: 100, answerType: "autoplay", ID_detection: "a100", text: "Closing sentence from Alfie." },
   ];
 
-  const mapped = mapLessonToExamQuestions(lessonQuestions, { f20: "/tmp/partB.mp3" }, "5_UNITS_B2");
+  const mapped = mapLessonToExamQuestions(lessonQuestions, { f20: "/tmp/partB.mp3" }, "5_UNITS_CEFR_B2");
 
   assert.deepEqual(mapped.map((q) => q.question_id), ["1a", "1b", "2", "3", "4"]);
   assert.deepEqual(mapped.map((q) => q.part), ["A", "A", "B", "C", "C"]);
@@ -212,11 +212,11 @@ test("maps a real Speak2Go lesson questionList onto the exam blueprint", () => {
 
 test("the Part B time deduction fires on mapped live data (no description field)", () => {
   const { isTimeBasedDeductionQuestion } = require(path.join(SRC, "utils", "questionMeta.js"));
-  const [partB] = mapLessonToExamQuestions(lessonQuestionList(), {}, "5_UNITS_B2")
+  const [partB] = mapLessonToExamQuestions(lessonQuestionList(), {}, "5_UNITS_CEFR_B2")
     .filter((q) => q.part === "B");
 
   assert.equal(partB.description.includes("Part B"), true);
-  assert.equal(isTimeBasedDeductionQuestion(partB, "5_UNITS_B2"), true);
+  assert.equal(isTimeBasedDeductionQuestion(partB, "5_UNITS_CEFR_B2"), true);
 });
 
 // The `order` values are NOT the same in every real exam. Of the 29 lessons in
@@ -232,7 +232,7 @@ test("maps exams whose order values differ from the common signature", () => {
   ];
 
   for (const orders of variants) {
-    const mapped = mapLessonToExamQuestions(lessonQuestionList(orders), {}, "5_UNITS_B2");
+    const mapped = mapLessonToExamQuestions(lessonQuestionList(orders), {}, "5_UNITS_CEFR_B2");
     const label = JSON.stringify(orders);
 
     assert.deepEqual(mapped.map((q) => q.question_id), ["1a", "1b", "2", "3", "4"], label);
@@ -250,7 +250,7 @@ test("maps the 2023 layout, where Part B is a two-question set", () => {
   const mapped = mapLessonToExamQuestions(
     lessonQuestionList({ a: [1, 3], b: [6, 7], c: [10, 11] }),
     {},
-    "5_UNITS_B2",
+    "5_UNITS_CEFR_B2",
     { lessonName: "Simulation A 2023 COBE FP" }
   );
 
@@ -266,16 +266,16 @@ test("2023 Part B questions form one group and keep the time deduction", () => {
   const mapped = mapLessonToExamQuestions(
     lessonQuestionList({ a: [1, 3], b: [6, 7], c: [10, 11] }),
     {},
-    "5_UNITS_B2"
+    "5_UNITS_CEFR_B2"
   );
 
   // 2a and 2b must land in the same group, or the partial-coverage deduction
   // never fires for a student who answers only one of them
-  const groups = groupQuestions(mapped, "5_UNITS_B2");
+  const groups = groupQuestions(mapped, "5_UNITS_CEFR_B2");
   assert.deepEqual(groups["2"].map((q) => q.question_id), ["2a", "2b"]);
 
   for (const q of mapped.filter((x) => x.part === "B")) {
-    assert.equal(isTimeBasedDeductionQuestion(q, "5_UNITS_B2"), true, q.question_id);
+    assert.equal(isTimeBasedDeductionQuestion(q, "5_UNITS_CEFR_B2"), true, q.question_id);
   }
 });
 
@@ -287,7 +287,7 @@ test("refuses to map a practice lesson that merely looks like an exam", () => {
   const practice = lessonQuestionList().filter((q) => !String(q.ID_detection).startsWith("sep-"));
 
   assert.throws(
-    () => mapLessonToExamQuestions(practice, {}, "5_UNITS_B2", { lessonName: "Pets & Animals, COBE" }),
+    () => mapLessonToExamQuestions(practice, {}, "5_UNITS_CEFR_B2", { lessonName: "Pets & Animals, COBE" }),
     /not a gradeable .* exam.*practice lesson/s
   );
   assert.equal(isFullExamLesson(practice, "Pets & Animals, COBE"), false);
@@ -301,7 +301,7 @@ test("refuses to map an exam missing a Part C question", () => {
     .filter((q) => q.ID_detection !== "det-c1");
 
   assert.throws(
-    () => mapLessonToExamQuestions(incomplete, {}, "5_UNITS_B2", { lessonName: "Simulation G 2023 COBE FP" }),
+    () => mapLessonToExamQuestions(incomplete, {}, "5_UNITS_CEFR_B2", { lessonName: "Simulation G 2023 COBE FP" }),
     /Part C has 1 question\(s\); supported: 2/
   );
 });
@@ -313,9 +313,9 @@ test("a 2023-format exam scores out of 100 end to end", async () => {
     ["det-a0", "det-a1", "det-b0", "det-b1", "det-c0", "det-c1"].map((d) => [d, "perfect.wav"])
   );
 
-  const questions = mapLessonToExamQuestions(lesson, audio, "5_UNITS_B2");
+  const questions = mapLessonToExamQuestions(lesson, audio, "5_UNITS_CEFR_B2");
   const { layout } = inspectLesson(lesson, "Simulation A 2023 COBE FP");
-  const result = await evaluateFullExam({ questions, level: "5_UNITS_B2", examLayout: layout });
+  const result = await evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2", examLayout: layout });
 
   assert.equal(result.overall_score, 100);
   assert.equal(result.points_possible, 100);
@@ -335,10 +335,10 @@ test("unattempted questions on a 2023 exam name the real missing slots", async (
   const questions = mapLessonToExamQuestions(
     lesson,
     { "det-a0": "perfect.wav", "det-a1": "perfect.wav", "det-b0": "perfect.wav", "det-b1": "perfect.wav" },
-    "5_UNITS_B2"
+    "5_UNITS_CEFR_B2"
   ).filter((q) => q.part !== "C");
 
-  const result = await evaluateFullExam({ questions, level: "5_UNITS_B2", examLayout: layout });
+  const result = await evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2", examLayout: layout });
 
   assert.deepEqual(result.unattempted_questions.map((q) => q.question_id), ["3", "4"]);
   assert.equal(result.unattempted_questions.reduce((s, q) => s + q.points_forfeited, 0), 50);

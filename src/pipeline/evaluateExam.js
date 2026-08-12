@@ -12,7 +12,7 @@ const { applyPenalties } = require("../utils/applyPenalties");
  * @param {object} params
  * @param {string} params.audioFilePath - local path to the student's audio answer
  * @param {string} params.questionText - the question text asked
- * @param {"5_UNITS_B2"|"4_UNITS_B1"} params.level - which rubric to use
+ * @param {"5_UNITS_CEFR_B2"|"4_UNITS_CEFR_B1"} params.level - which rubric to use
  * @param {Array}  [params.priorContext] - earlier answers in the same question set
  * @param {string|null} [params.referenceMaterial] - Part C clip transcript;
  *   null/undefined for Parts A and B (scorer ignores it when absent)

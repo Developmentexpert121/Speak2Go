@@ -12,7 +12,8 @@ const { createJob, updateJob, getJob, listJobs } = require("./jobStore");
 const { runExam } = require("./examRunner");
 const { listByStudent, downloadRecording, canFetchRecordings, RECORDING_PATH } = require("./recordings");
 const { getReport } = require("./reportStore");
-const { buildStudentObject, buildExamObject, CEFR_BY_LEVEL, LEVEL_LABEL } = require("./specObjects");
+const { buildStudentObject, buildExamObject, normalizeLevel, CEFR_BY_LEVEL, LEVEL_LABEL } = require("./specObjects");
+const { isConfigured: s3IsConfigured, BUCKET: S3_BUCKET, REGION: S3_REGION } = require("./s3ReportStorage");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -34,28 +35,16 @@ const upload = multer({
 });
 
 /**
- * The levels this module can grade, and why the third one cannot be.
+ * The levels this module can grade.
  *
- * 3-point Boost is in the spec (section 1, CEFR A2) but no Boost rubric has
- * been supplied: neither the MoE Table of Specs docx nor the scoring xlsx
- * contains one — both cover COBE only, referencing She'elon 16387 for Boost
- * without reproducing its criteria. Guessing a rubric would produce grades
- * that look official and are not, so the level is exposed as blocked with the
- * reason attached rather than quietly omitted from the dropdown.
+ * 3-point Boost used to be listed here as "blocked, awaiting rubric". The
+ * client confirmed on 12 Aug 2026 that Boost is a different exam with its own
+ * rubrics and belongs to a separate project, so it is not a gap in this one
+ * and has been removed rather than left showing as pending work.
  */
 const LEVELS = [
-  { level: "5_UNITS_B2", label: LEVEL_LABEL["5_UNITS_B2"], cefr: "B2", supported: true },
-  { level: "4_UNITS_B1", label: LEVEL_LABEL["4_UNITS_B1"], cefr: "B1", supported: true },
-  {
-    level: "3_UNITS_BOOST",
-    label: LEVEL_LABEL["3_UNITS_BOOST"],
-    cefr: "A2",
-    supported: false,
-    blockedReason:
-      "No Boost rubric supplied. The MoE Table of Specs and the scoring sheet both cover " +
-      "COBE only; Boost is referenced as She'elon 16387 but its criteria are not included. " +
-      "Awaiting the rubric from the client.",
-  },
+  { level: "5_UNITS_CEFR_B2", label: LEVEL_LABEL["5_UNITS_CEFR_B2"], cefr: "B2", supported: true },
+  { level: "4_UNITS_CEFR_B1", label: LEVEL_LABEL["4_UNITS_CEFR_B1"], cefr: "B1", supported: true },
 ];
 
 /**
@@ -67,9 +56,21 @@ app.get("/api/health", (req, res) => {
     ok: true,
     deepgramKey: Boolean(process.env.DEEPGRAM_API_KEY),
     openaiKey: Boolean(process.env.OPENAI_API_KEY),
-    model: process.env.OPENAI_MODEL || "gpt-4o",
+    model: process.env.OPENAI_MODEL || "gpt-4o-mini",
     recordingsFetch: canFetchRecordings(),
     recordingEndpoint: RECORDING_PATH,
+    // The two integration points that depend on the client's infrastructure.
+    // Reported so a failed delivery can be diagnosed as "not configured"
+    // rather than mistaken for a bug in the run.
+    reportUpload: {
+      configured: s3IsConfigured(),
+      bucket: S3_BUCKET,
+      region: S3_REGION,
+    },
+    resultCallback: {
+      signingSecret: Boolean(process.env.WEBHOOK_SIGNING_SECRET),
+      allowedHosts: (process.env.WEBHOOK_ALLOWED_HOSTS || "").split(",").filter(Boolean),
+    },
     levels: LEVELS,
   });
 });
@@ -79,7 +80,11 @@ app.get("/api/health", (req, res) => {
  * pre-filled with default question text.
  */
 app.get("/api/blueprint", (req, res) => {
-  const level = req.query.level || "5_UNITS_B2";
+  // Normalised for the same reason POST /api/exams does it: a caller written
+  // against the pre-spec-doc level codes should get a blueprint, not a 400.
+  // Skipping it here would mean the two endpoints disagree about which levels
+  // exist, which is worse than either answer on its own.
+  const level = normalizeLevel(req.query.level || "5_UNITS_CEFR_B2");
   const known = LEVELS.find((l) => l.level === level);
   if (known && !known.supported) {
     return res.status(422).json({ error: known.blockedReason, level, blocked: true });
@@ -92,8 +97,8 @@ app.get("/api/blueprint", (req, res) => {
     }));
     res.json({
       level,
-      cefr_level: CEFR_BY_LEVEL[level] || null,
-      level_label: LEVEL_LABEL[level] || level,
+      cefrLevel: CEFR_BY_LEVEL[level] || null,
+      levelLabel: LEVEL_LABEL[level] || level,
       totalPoints: getExamTotalPoints(level),
       slots,
       defaultPartCTranscript: DEFAULT_PART_C_TRANSCRIPT,
@@ -149,14 +154,18 @@ app.post("/api/recordings/fetch", async (req, res) => {
  *     IDNumber is hashed before it is stored anywhere; the raw value is not
  *     retained past this function.
  *   - questions: JSON array of { question_id, question_text, localPath? }
+ *   - callbackUrl: optional, where the signed result is POSTed when the run ends
  *   - files named audio_<question_id>
  *
- * Returns { examId, student_object, exam_object } immediately; poll
+ * Returns { examId, studentObject, examObject } immediately; poll
  * /api/exams/:id for progress.
  */
 app.post("/api/exams", upload.any(), (req, res) => {
   try {
-    const level = req.body.level || "5_UNITS_B2";
+    // normalizeLevel accepts the pre-spec-doc spellings ("5_UNITS_B2") and
+    // returns the canonical one, so an older caller is not rejected over a
+    // missing "CEFR_".
+    const level = normalizeLevel(req.body.level || "5_UNITS_CEFR_B2");
     const known = LEVELS.find((l) => l.level === level);
     if (known && !known.supported) {
       return res.status(422).json({ error: known.blockedReason });
@@ -194,6 +203,10 @@ app.post("/api/exams", upload.any(), (req, res) => {
         weight: bp.points,
         question_text: supplied.question_text || DEFAULT_QUESTION_TEXTS[bp.question_id] || "",
         audioFilePath,
+        // Spec 3.6's per-question audio_file_url. We only ever receive the
+        // file, so this is whatever Speak2Go could resolve — passed through
+        // to the report when present, null when not.
+        audioFileUrl: supplied.audioFileUrl || null,
         referenceMaterial: bp.part === "C" && partCTranscript ? partCTranscript : null,
       };
     });
@@ -205,6 +218,12 @@ app.post("/api/exams", upload.any(), (req, res) => {
     }
 
     const examId = `exam_${crypto.randomBytes(6).toString("hex")}`;
+
+    // Where to POST the finished result. Speak2Go puts this on the Exam
+    // Object; it is rejected later by webhook.js unless its host is in
+    // WEBHOOK_ALLOWED_HOSTS, because it is caller-supplied.
+    const callbackUrl = req.body.callbackUrl || null;
+
     const examObject = buildExamObject({
       examId,
       level,
@@ -212,15 +231,16 @@ app.post("/api/exams", upload.any(), (req, res) => {
       description: req.body.examDescription || null,
       dateExecuted: req.body.dateExecuted || new Date().toISOString(),
     });
+    if (callbackUrl) examObject.callbackUrl = callbackUrl;
 
     createJob(examId, {
-      studentName: studentObject.full_name,
+      studentName: studentObject.fullName,
       level,
       total: questions.length,
     });
     // Available while the run is still going, so the UI can show who is being
     // graded rather than an empty panel for several minutes.
-    updateJob(examId, { student_object: studentObject, exam_object: examObject });
+    updateJob(examId, { studentObject, examObject });
 
     // Fire and forget — the client polls for progress.
     runExam({
@@ -232,9 +252,10 @@ app.post("/api/exams", upload.any(), (req, res) => {
       tempFiles,
       studentObject,
       examObject,
+      callbackUrl,
     });
 
-    res.status(202).json({ examId, student_object: studentObject, exam_object: examObject });
+    res.status(202).json({ examId, studentObject, examObject });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

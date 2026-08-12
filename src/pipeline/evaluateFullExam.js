@@ -17,7 +17,7 @@ const { getBlueprint, getExamTotalPoints } = require("../config/examBlueprint");
  * @param {object} params
  * @param {Array} params.questions - [{ question_id, description, part,
  *   question_text, weight, audioFilePath }, ...]
- * @param {"5_UNITS_B2"|"4_UNITS_B1"} params.level
+ * @param {"5_UNITS_CEFR_B2"|"4_UNITS_CEFR_B1"} params.level
  * @param {number} [params.examTotalPoints] - override the blueprint total;
  *   only for partial/practice exams that are genuinely marked out of less
  * @param {Array} [params.examLayout] - the full slot list this exam should
@@ -69,8 +69,14 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
         ...result,
         question_id: q.question_id,
         group_id: groupId,
+        part: q.part ?? null,
         weight: q.weight,
         description: q.description,
+        // Spec 3.6 puts an audio_file_url on every question page. We are handed
+        // audio as a local file, never as a URL, so this is whatever the caller
+        // could resolve — null until Speak2Go supplies one. Carried through
+        // rather than dropped so the field exists the day they do.
+        audio_file_url: q.audioFileUrl ?? q.audio_file_url ?? null,
       };
 
       priorContext.push({

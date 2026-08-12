@@ -21,6 +21,7 @@ const { saveReferenceMaterial } = require("../src/storage/referenceMaterialStore
 const { updateJob } = require("./jobStore");
 const { buildReports } = require("./reportStore");
 const { buildExamObject } = require("./specObjects");
+const { deliverResult } = require("./webhook");
 
 /**
  * @param {object} params
@@ -33,6 +34,8 @@ const { buildExamObject } = require("./specObjects");
  * @param {Array}  [params.tempFiles] - paths to delete once the run finishes
  * @param {object} [params.studentObject] - spec 3.2, built by the caller
  * @param {object} [params.examObject] - spec 3.1, built by the caller
+ * @param {string} [params.callbackUrl] - where to POST the finished result.
+ *   Supplied by Speak2Go on the Exam Object; validated and signed in webhook.js
  */
 async function runExam({
   examId,
@@ -43,6 +46,7 @@ async function runExam({
   tempFiles = [],
   studentObject = null,
   examObject = null,
+  callbackUrl = null,
 }) {
   try {
     updateJob(examId, { status: "running", stage: "starting", total: questions.length });
@@ -86,44 +90,58 @@ async function runExam({
     updateJob(examId, { stage: "rendering_reports", result: examResult, report });
 
     const meta = {
-      studentName: studentObject?.full_name || "Student",
-      examLevel: examObject?.level_label || level,
-      cefrLevel: examObject?.cefr_level || null,
-      dateExecuted: examObject?.date_executed || new Date().toISOString(),
-      schoolName: studentObject?.school_name || null,
-      gradeClass: studentObject?.grade_class || null,
+      examId,
+      studentName: studentObject?.fullName || "Student",
+      examLevel: examObject?.levelLabel || level,
+      cefrLevel: examObject?.cefrLevel || null,
+      dateExecuted: examObject?.dateExecuted || new Date().toISOString(),
+      schoolName: studentObject?.schoolName || null,
+      gradeClass: studentObject?.gradeClass || null,
     };
 
     const urls = await buildReports({ examId, examResult, report, meta });
 
     // Close out the Exam Object now that the two fields that could only be
-    // known after the run — the score and the report urls — exist.
-    // examObject arrives already in spec (snake_case) shape, so re-derive it
-    // through the same builder rather than spreading — that keeps one place
-    // responsible for the shape and avoids half-updated objects.
+    // known after the run — the score and the report urls — exist. Re-derive
+    // it through the same builder rather than spreading, so one place stays
+    // responsible for the shape and half-updated objects can't happen.
     const finalExamObject = buildExamObject({
       examId,
       level,
       name: examObject?.name,
       description: examObject?.description,
       dateExecuted: meta.dateExecuted,
-      examLessonFlag: examObject?.exam_lesson,
-      examLessonSource: examObject?.exam_lesson_source,
+      examLessonFlag: examObject?.examLesson,
+      examLessonSource: examObject?.examLessonSource,
       finalScore: examResult.overall_score,
       reportHtmlUrl: urls.reportHtmlUrl,
       reportPdfUrl: urls.reportPdfUrl,
     });
-    finalExamObject.report_dashboard_url = urls.reportDashboardUrl;
+    finalExamObject.reportDashboardUrl = urls.reportDashboardUrl;
 
     updateJob(examId, {
       status: "done",
       stage: "done",
       result: examResult,
       report,
-      exam_object: finalExamObject,
-      student_object: studentObject,
+      examObject: finalExamObject,
+      studentObject,
       finishedAt: new Date().toISOString(),
     });
+
+    // Hand the result to Speak2Go. Deliberately after the job is marked done
+    // and deliberately not allowed to fail the run: the exam is graded either
+    // way, and a callback that cannot be reached is a delivery problem, not a
+    // grading one. The outcome is recorded on the job so it stays visible.
+    const target = callbackUrl || examObject?.callbackUrl || null;
+    if (target) {
+      const delivery = await deliverResult({
+        examId,
+        callbackUrl: target,
+        payload: { examObject: finalExamObject, studentObject, report },
+      });
+      updateJob(examId, { delivery });
+    }
   } catch (err) {
     updateJob(examId, {
       status: "error",

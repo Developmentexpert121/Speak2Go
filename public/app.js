@@ -60,8 +60,9 @@ async function loadHealth() {
   }
 }
 
-/* The 3-point Boost option is shown but disabled — hiding it would misrepresent
-   the spec, which asks for it. The reason lives on the option itself. */
+/* The blocked-level path is kept even though nothing is blocked today (Boost
+   moved to a separate project). It costs one attribute and means a level can
+   be surfaced as unavailable-with-a-reason instead of vanishing silently. */
 function renderLevelOptions() {
   const sel = $("#level");
   sel.innerHTML = state.levels
@@ -112,11 +113,11 @@ function renderStudentPreview() {
   $("#studentPreview").innerHTML = `
     <div class="obj-title">Derived Student Object</div>
     <div class="obj-grid">
-      <span>student_id</span><code>${s.IDNumber ? "sha256(salt + IDNumber) → 32 hex" : "— no ID entered"}</code>
-      <span>full_name</span><code>${esc(full)}</code>
-      <span>grade_class</span><code>${esc(gc)}</code>
-      <span>school_name</span><code>${esc(s.schoolName || "—")}</code>
-      <span>school_id</span><code>${esc(s.SemelMosad || "—")}</code>
+      <span>studentId</span><code>${s.IDNumber ? "sha256(salt + IDNumber) → 32 hex" : "— no ID entered"}</code>
+      <span>fullName</span><code>${esc(full)}</code>
+      <span>gradeClass</span><code>${esc(gc)}</code>
+      <span>schoolName</span><code>${esc(s.schoolName || "—")}</code>
+      <span>schoolId</span><code>${esc(s.SemelMosad || "—")}</code>
     </div>`;
 }
 
@@ -458,8 +459,8 @@ function showError(msg) {
 function renderResults(job) {
   const exam = job.result;
   const report = job.report;
-  const eo = job.exam_object || {};
-  const so = job.student_object || {};
+  const eo = job.examObject || {};
+  const so = job.studentObject || {};
   const R = 58;
   const C = 2 * Math.PI * R;
   const pct = Math.max(0, Math.min(100, exam.overall_score));
@@ -479,14 +480,14 @@ function renderResults(job) {
         <div class="dial-val">${exam.overall_score}</div>
       </div>
       <div class="hero-meta">
-        <h3>${esc(so.full_name || "Student")}</h3>
+        <h3>${esc(so.fullName || "Student")}</h3>
         <p>
-          ${esc(eo.level_label || exam.level)} · CEFR ${esc(eo.cefr_level || "—")} ·
+          ${esc(eo.levelLabel || exam.level)} · CEFR ${esc(eo.cefrLevel || "—")} ·
           ${exam.points_earned} of ${exam.points_possible} points
         </p>
         <p class="hero-sub">
-          ${esc(so.school_name || "—")} · Semel ${esc(so.school_id || "—")} · Class ${esc(
-    so.grade_class || "—"
+          ${esc(so.schoolName || "—")} · Semel ${esc(so.schoolId || "—")} · Class ${esc(
+    so.gradeClass || "—"
   )}
         </p>
         <p style="margin-top:8px">
@@ -501,9 +502,9 @@ function renderResults(job) {
         </p>
       </div>
       <div class="hero-actions">
-        ${eo.report_html_url ? `<a class="btn small ghost" href="${esc(eo.report_html_url)}" target="_blank">Report HTML</a>` : ""}
-        ${eo.report_pdf_url ? `<a class="btn small ghost" href="${esc(eo.report_pdf_url)}" target="_blank">Download PDF</a>` : ""}
-        ${eo.report_dashboard_url ? `<a class="btn small ghost" href="${esc(eo.report_dashboard_url)}" target="_blank">Full dashboard</a>` : ""}
+        ${eo.reportHtmlUrl ? `<a class="btn small ghost" href="${esc(eo.reportHtmlUrl)}" target="_blank">Report HTML</a>` : ""}
+        ${eo.reportPdfUrl ? `<a class="btn small ghost" href="${esc(eo.reportPdfUrl)}" target="_blank">Download PDF</a>` : ""}
+        ${eo.reportDashboardUrl ? `<a class="btn small ghost" href="${esc(eo.reportDashboardUrl)}" target="_blank">Full dashboard</a>` : ""}
       </div>
     </div>
   </section>`;
@@ -521,16 +522,16 @@ function renderResults(job) {
         <div class="obj-title">Exam Object</div>
         <div class="obj-grid">
           ${[
-            ["exam_id", eo.exam_id],
-            ["exam_lesson", `${eo.exam_lesson} — ${eo.exam_lesson_source || ""}`],
+            ["examId", eo.examId],
+            ["examLesson", `${eo.examLesson} — ${eo.examLessonSource || ""}`],
             ["name", eo.name],
             ["description", eo.description],
             ["level", eo.level],
-            ["cefr_level", eo.cefr_level],
-            ["date_executed", eo.date_executed],
-            ["final_score", eo.final_score],
-            ["report_html_url", eo.report_html_url],
-            ["report_pdf_url", eo.report_pdf_url],
+            ["cefrLevel", eo.cefrLevel],
+            ["dateExecuted", eo.dateExecuted],
+            ["finalScore", eo.finalScore],
+            ["reportHtmlUrl", eo.reportHtmlUrl],
+            ["reportPdfUrl", eo.reportPdfUrl],
           ]
             .map(([k, v]) => `<span>${k}</span><code>${esc(v ?? "null")}</code>`)
             .join("")}
@@ -540,17 +541,17 @@ function renderResults(job) {
         <div class="obj-title">Student Object</div>
         <div class="obj-grid">
           ${[
-            ["student_id", so.student_id],
-            ["full_name", so.full_name],
-            ["grade_class", so.grade_class],
-            ["school_name", so.school_name],
-            ["school_id", so.school_id],
+            ["studentId", so.studentId],
+            ["fullName", so.fullName],
+            ["gradeClass", so.gradeClass],
+            ["schoolName", so.schoolName],
+            ["schoolId", so.schoolId],
           ]
             .map(([k, v]) => `<span>${k}</span><code>${esc(v ?? "null")}</code>`)
             .join("")}
         </div>
         <p class="hint" style="margin-top:10px">
-          <code>student_id</code> is a salted SHA-256 of <code>IDNumber</code>. The raw
+          <code>studentId</code> is a salted SHA-256 of <code>IDNumber</code>. The raw
           national ID is not stored, logged, or sent to the model.
         </p>
       </div>
@@ -612,17 +613,17 @@ function renderResults(job) {
     </div>
   </section>`;
 
-  const dedTable = report.deductions_table.length
+  const dedTable = report.deductionsTable.length
     ? `
   <section class="card">
     <h2>Deductions applied</h2>
     <table>
       <thead><tr><th>Question</th><th>Reason</th><th>Deduction</th></tr></thead>
       <tbody>
-        ${report.deductions_table
+        ${report.deductionsTable
           .map(
             (d) =>
-              `<tr><td>${esc(d.question_id)}</td><td>${esc(d.reason)}</td><td>−${d.deductionPct}%</td></tr>`
+              `<tr><td>${esc(d.questionId)}</td><td>${esc(d.reason)}</td><td>−${d.deductionPct}%</td></tr>`
           )
           .join("")}
       </tbody>
@@ -636,7 +637,7 @@ function renderResults(job) {
   const recs = `
   <section class="card">
     <h2>Teacher recommendations</h2>
-    <div class="recs">${esc(report.teacher_recommendations)}</div>
+    <div class="recs">${esc(report.teacherRecommendations)}</div>
   </section>`;
 
   $("#results").innerHTML = hero + objects + questions + dedTable + recs;

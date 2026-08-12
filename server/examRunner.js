@@ -133,6 +133,8 @@ async function runExam({
     // and deliberately not allowed to fail the run: the exam is graded either
     // way, and a callback that cannot be reached is a delivery problem, not a
     // grading one. The outcome is recorded on the job so it stays visible.
+    // Normally supplied alongside the Exam Object. The nested form is still
+    // honoured so a caller written against the earlier shape keeps working.
     const target = callbackUrl || examObject?.callbackUrl || null;
     if (target) {
       const delivery = await deliverResult({

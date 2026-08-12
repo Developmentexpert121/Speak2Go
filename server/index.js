@@ -219,9 +219,13 @@ app.post("/api/exams", upload.any(), (req, res) => {
 
     const examId = `exam_${crypto.randomBytes(6).toString("hex")}`;
 
-    // Where to POST the finished result. Speak2Go puts this on the Exam
-    // Object; it is rejected later by webhook.js unless its host is in
-    // WEBHOOK_ALLOWED_HOSTS, because it is caller-supplied.
+    // Where to POST the finished result. Sent alongside the Exam Object rather
+    // than inside it (client, 12 Aug 2026) — it is transport configuration for
+    // one request, not a property of the exam, and putting it on the object
+    // would mean echoing it back in every report payload.
+    //
+    // It is caller-supplied, so webhook.js rejects it later unless its host is
+    // in WEBHOOK_ALLOWED_HOSTS.
     const callbackUrl = req.body.callbackUrl || null;
 
     const examObject = buildExamObject({
@@ -231,7 +235,6 @@ app.post("/api/exams", upload.any(), (req, res) => {
       description: req.body.examDescription || null,
       dateExecuted: req.body.dateExecuted || new Date().toISOString(),
     });
-    if (callbackUrl) examObject.callbackUrl = callbackUrl;
 
     createJob(examId, {
       studentName: studentObject.fullName,

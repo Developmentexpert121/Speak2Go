@@ -128,6 +128,7 @@ itself; these are the ones that matter:
 | `SPEAK2GO_API_URL` / `_TOKEN` | optional | only for pulling recordings from the platform |
 | `WEBHOOK_SIGNING_SECRET` | posting results back | no secret, nothing is sent — see below |
 | `WEBHOOK_ALLOWED_HOSTS` | posting results back | SSRF guard, empty means no deliveries |
+| `WEBHOOK_MAX_RETRIES` | optional | defaults to `3`, on top of the first attempt |
 | `AWS_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | uploading report HTML | must be an IAM key, not a console login |
 | `S3_REPORT_BUCKET` / `AWS_REGION` | uploading report HTML | default `oral-exams-s2g` in `us-east-1` |
 
@@ -147,8 +148,10 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 
 #### Delivering the result back to Speak2Go
 
-Pass a `callbackUrl` when creating an exam and the finished Report Object is
-POSTed there. Two headers carry the proof:
+Pass a `callbackUrl` alongside the Exam Object when creating an exam and the
+finished Report Object is POSTed there. It is sent next to the Exam Object
+rather than inside it: it is transport configuration for a single request, not
+a property of the exam. Two headers carry the proof:
 
 ```
 x-s2g-signature: sha256=<hex>
@@ -173,8 +176,11 @@ unsigned, and with no allowlist it refuses to send at all. The allowlist is
 what stops a caller-supplied `callbackUrl` from pointing this server at
 `169.254.169.254` or anything else inside the network. Non-2xx responses are
 retried only for 429 and 5xx — a 400 or 401 means the request itself is wrong,
-so repeating it just repeats the error. A failed delivery is recorded on the
-job and never fails the exam run.
+so repeating it just repeats the error. Retries default to 3 on top of the
+first attempt, backing off 1s / 5s / 20s, and are re-signed each time so a
+delayed retry is not rejected as stale. `x-s2g-delivery` stays constant across
+them, so the receiver can discard the duplicate our own retry created. A
+failed delivery is recorded on the job and never fails the exam run.
 
 #### Uploading the report HTML
 

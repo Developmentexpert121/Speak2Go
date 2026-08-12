@@ -334,6 +334,122 @@ test("deliverResult does not retry a 4xx", async () => {
   );
 });
 
+test("a 5xx is retried three times by default — four requests in total", async () => {
+  const { deliverResult } = require("../../server/webhook");
+
+  await withEnv(
+    {
+      WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net",
+      WEBHOOK_SIGNING_SECRET: SECRET,
+      WEBHOOK_MAX_RETRIES: undefined, // exercise the default
+    },
+    async () => {
+      let calls = 0;
+      const result = await deliverResult({
+        examId: "exam_abc",
+        callbackUrl: "https://api.speak2go.net/hook",
+        payload: {},
+        fetchImpl: async () => {
+          calls += 1;
+          return { ok: false, status: 503 };
+        },
+        sleepImpl: async () => {}, // skip the real backoff
+      });
+
+      assert.equal(result.delivered, false);
+      assert.equal(calls, 4, "1 initial attempt + 3 retries");
+      assert.equal(result.attempts, 4);
+    }
+  );
+});
+
+test("the retry count is configurable", async () => {
+  const { deliverResult } = require("../../server/webhook");
+
+  for (const [configured, expectedCalls] of [
+    ["0", 1],
+    ["1", 2],
+    ["6", 7], // past the end of the backoff schedule — must not run off it
+  ]) {
+    await withEnv(
+      {
+        WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net",
+        WEBHOOK_SIGNING_SECRET: SECRET,
+        WEBHOOK_MAX_RETRIES: configured,
+      },
+      async () => {
+        let calls = 0;
+        const result = await deliverResult({
+          examId: "exam_abc",
+          callbackUrl: "https://api.speak2go.net/hook",
+          payload: {},
+          fetchImpl: async () => {
+            calls += 1;
+            return { ok: false, status: 500 };
+          },
+          sleepImpl: async () => {},
+        });
+        assert.equal(calls, expectedCalls, `WEBHOOK_MAX_RETRIES=${configured}`);
+        assert.equal(result.attempts, expectedCalls);
+      }
+    );
+  }
+});
+
+test("a garbled retry count falls back to the default rather than disabling retries", () => {
+  const { maxRetries, DEFAULT_MAX_RETRIES } = require("../../server/webhook");
+
+  withEnv({ WEBHOOK_MAX_RETRIES: "not a number" }, () => {
+    assert.equal(maxRetries(), DEFAULT_MAX_RETRIES);
+  });
+  withEnv({ WEBHOOK_MAX_RETRIES: "-2" }, () => {
+    assert.equal(maxRetries(), DEFAULT_MAX_RETRIES);
+  });
+  // An explicit 0 is a real choice and must be honoured — it is the only way
+  // to say "deliver once, never retry".
+  withEnv({ WEBHOOK_MAX_RETRIES: "0" }, () => {
+    assert.equal(maxRetries(), 0);
+  });
+});
+
+test("a retry is re-signed, so a delivery delayed past the window still verifies", async () => {
+  // Each attempt gets a fresh timestamp and signature. Without that, a retry
+  // 60s later would carry the original timestamp and the receiver would reject
+  // it as stale — the retries would be guaranteed to fail.
+  const { deliverResult } = require("../../server/webhook");
+
+  await withEnv(
+    { WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net", WEBHOOK_SIGNING_SECRET: SECRET, WEBHOOK_MAX_RETRIES: "1" },
+    async () => {
+      const seen = [];
+      await deliverResult({
+        examId: "exam_abc",
+        callbackUrl: "https://api.speak2go.net/hook",
+        payload: { report: { overallScore: 61 } },
+        fetchImpl: async (url, opts) => {
+          seen.push(opts);
+          return { ok: false, status: 500 };
+        },
+        sleepImpl: async () => {},
+      });
+
+      assert.equal(seen.length, 2);
+      for (const opts of seen) {
+        const verified = verifyRequest({
+          rawBody: opts.body,
+          signatureHeader: opts.headers[SIGNATURE_HEADER],
+          timestampHeader: opts.headers[TIMESTAMP_HEADER],
+          secret: SECRET,
+        });
+        assert.deepEqual(verified, { ok: true }, "every attempt must verify on its own");
+      }
+      // Same exam, same delivery id — that is what lets the receiver discard
+      // the duplicate our own retry created.
+      assert.equal(seen[0].headers[DELIVERY_HEADER], seen[1].headers[DELIVERY_HEADER]);
+    }
+  );
+});
+
 test("a blocked callbackUrl never reaches the network", async () => {
   const { deliverResult } = require("../../server/webhook");
 

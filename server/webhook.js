@@ -39,11 +39,39 @@ const EVENT_HEADER = "x-s2g-event";
 /** How far out of date a timestamp may be before the receiver rejects it. */
 const DEFAULT_TOLERANCE_SECONDS = 300;
 
-/** Attempt schedule in ms. Five tries over ~2.5 minutes, then give up. */
+/**
+ * Backoff schedule in ms, indexed by retry number. The client asked (12 Aug
+ * 2026) for 3 retries, kept configurable — so the schedule is longer than the
+ * default needs and is simply read up to WEBHOOK_MAX_RETRIES. Raising the
+ * count past the end of the list reuses the last delay rather than running off
+ * the end, which is why delayForRetry() clamps instead of indexing directly.
+ */
 const RETRY_DELAYS_MS = [1000, 5000, 20000, 60000];
+
+/** 1 initial attempt + this many retries. 3 retries = at most 4 requests. */
+const DEFAULT_MAX_RETRIES = 3;
 
 function getSecret() {
   return process.env.WEBHOOK_SIGNING_SECRET || "";
+}
+
+/**
+ * Read at call time rather than at module load, so the value can be changed
+ * without a restart and so tests can set it per case.
+ */
+function maxRetries() {
+  const raw = process.env.WEBHOOK_MAX_RETRIES;
+  if (raw === undefined || raw === "") return DEFAULT_MAX_RETRIES;
+  const n = Number(raw);
+  // A non-numeric or negative value falls back to the default instead of
+  // silently disabling retries — a typo here should not quietly turn a
+  // recoverable delivery into a one-shot.
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_MAX_RETRIES;
+  return Math.floor(n);
+}
+
+function delayForRetry(retryNumber) {
+  return RETRY_DELAYS_MS[Math.min(retryNumber, RETRY_DELAYS_MS.length - 1)];
 }
 
 /**
@@ -186,7 +214,15 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
  * @returns {Promise<{ delivered: boolean, attempts: number, status?: number,
  *   reason?: string, deliveryId: string }>}
  */
-async function deliverResult({ examId, callbackUrl, payload, event = "exam.completed", fetchImpl = fetch }) {
+async function deliverResult({
+  examId,
+  callbackUrl,
+  payload,
+  event = "exam.completed",
+  fetchImpl = fetch,
+  // Injectable so the retry tests do not have to sit through the real backoff.
+  sleepImpl = sleep,
+}) {
   const deliveryId = `${examId}`;
 
   const target = validateCallbackUrl(callbackUrl);
@@ -205,8 +241,11 @@ async function deliverResult({ examId, callbackUrl, payload, event = "exam.compl
   // Serialized once. This exact string is what gets signed and what gets sent.
   const rawBody = JSON.stringify(payload);
 
+  const retries = maxRetries();
   let lastReason = "";
-  for (let attempt = 1; attempt <= RETRY_DELAYS_MS.length + 1; attempt++) {
+  let attempt = 0;
+
+  for (attempt = 1; attempt <= retries + 1; attempt++) {
     // Re-signed per attempt so a retry 60s later is not rejected for being
     // outside the receiver's timestamp window.
     const { signature, timestamp } = signPayload(rawBody, secret);
@@ -238,13 +277,16 @@ async function deliverResult({ examId, callbackUrl, payload, event = "exam.compl
       lastReason = err.message;
     }
 
-    const delay = RETRY_DELAYS_MS[attempt - 1];
-    if (delay === undefined) break;
-    await sleep(delay);
+    // No pause after the final attempt — there is nothing left to wait for.
+    if (attempt > retries) break;
+    await sleepImpl(delayForRetry(attempt - 1));
   }
 
-  console.warn(`  webhook delivery failed for ${examId} after retries: ${lastReason}`);
-  return { delivered: false, attempts: RETRY_DELAYS_MS.length + 1, reason: lastReason, deliveryId };
+  const used = Math.min(attempt, retries + 1);
+  console.warn(
+    `  webhook delivery failed for ${examId} after ${used} attempt(s): ${lastReason}`
+  );
+  return { delivered: false, attempts: used, reason: lastReason, deliveryId };
 }
 
 module.exports = {
@@ -254,6 +296,8 @@ module.exports = {
   validateCallbackUrl,
   hostIsAllowed,
   isRetryableStatus,
+  maxRetries,
+  DEFAULT_MAX_RETRIES,
   SIGNATURE_HEADER,
   TIMESTAMP_HEADER,
   DELIVERY_HEADER,

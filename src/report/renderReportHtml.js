@@ -50,6 +50,14 @@ function renderReportHtml(report, meta = {}) {
       <div class="question-head">
         <span class="qid">Q${esc(q.questionId)}</span>
         <span class="qdesc">${esc(q.description)}</span>
+        ${
+          // Part A shows two questions and only the better one counts. Both
+          // are printed with a full breakdown, so without this badge a reader
+          // sees two Part A scores and cannot tell which produced the grade.
+          q.countsTowardFinal === false
+            ? `<span class="not-counted">feedback only — not counted</span>`
+            : ""
+        }
         <span class="qscore" style="color:${scoreColor(q.finalQuestionScore)}">${num(q.finalQuestionScore)}</span>
       </div>
 
@@ -169,6 +177,9 @@ function renderReportHtml(report, meta = {}) {
   .qid { font-weight:700; color:#0A6E9E; background:#E9F6FE; border-radius:5px; padding:2px 8px; }
   .qdesc { color:#46545F; font-size:12.5px; flex:1; }
   .qscore { font-weight:700; font-size:16px; }
+  /* Grey, not red: this answer is not a failure, it simply is not the one
+     that counted. */
+  .not-counted { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#667582; background:#F1F4F7; border-radius:4px; padding:2px 7px; white-space:nowrap; }
   .label { display:block; color:#667582; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; }
   .qtext { font-size:12.5px; margin-bottom:8px; }
   /* The transcript is the evidence behind the grade, so it is shown in full

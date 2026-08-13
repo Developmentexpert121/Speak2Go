@@ -29,16 +29,16 @@ const { renderReportPdf } = require("../src/report/renderReportPdf");
  */
 const MOCK_EXAM_RESULT = {
   level: "5_UNITS_CEFR_B2",
-  overall_score: 32.26,
-  points_earned: 32.26,
+  overall_score: 34.22,
+  points_earned: 34.22,
   points_possible: 100,
 
   // The blueprint the exam was marked against. buildPartScores() reads the
   // Details table off THIS, not off the answers, which is why question 4
   // below can be missing from question_results and still occupy a 25-point row.
   exam_layout: [
-    { question_id: "1a", part: "A", points: 12.5, description: "Part A - Personal Response (Q1)" },
-    { question_id: "1b", part: "A", points: 12.5, description: "Part A - Personal Response (Q2)" },
+    { question_id: "1a", part: "A", points: 25, choice_group: "A", description: "Part A - Personal Response (Q1)" },
+    { question_id: "1b", part: "A", points: 25, choice_group: "A", description: "Part A - Personal Response (Q2)" },
     { question_id: "2", part: "B", points: 25, description: "Part B - Project Presentation" },
     { question_id: "3", part: "C", points: 25, description: "Part C - Video Comprehension" },
     { question_id: "4", part: "C", points: 25, description: "Part C - Personal Opinion" },
@@ -53,7 +53,9 @@ const MOCK_EXAM_RESULT = {
       // The clean case: answered well, nothing penalised.
       question_id: "1a",
       part: "A",
-      weight: 12.5,
+      weight: 25,
+      choice_group: "A",
+      counts_toward_final: true,
       description: "Part A - Personal Response (Q1)",
       question_text: "Tell me about something you have done recently that you are proud of.",
       transcript:
@@ -111,7 +113,9 @@ const MOCK_EXAM_RESULT = {
       // A weaker but still valid answer — shows the middle two star bands.
       question_id: "1b",
       part: "A",
-      weight: 12.5,
+      weight: 25,
+      choice_group: "A",
+      counts_toward_final: false,
       description: "Part A - Personal Response (Q2)",
       question_text: "Do you think young people spend too much time on social media?",
       transcript:

@@ -19,11 +19,49 @@ const { getReferenceMaterial } = require("../storage/referenceMaterialStore");
  *     approaches tried before it.
  *
  * Point split follows the Ministry spec: Part A 25, Part B 25, Part C 50,
- * divided evenly between the questions actually present in each part.
+ * divided evenly between the questions actually present in each part — except
+ * on a choose-one part, where every offered question carries the full amount
+ * because only one of them counts. See CHOICE_PARTS.
  */
 
 /** Ministry point allocation per part. Always totals 100. */
 const PART_POINTS = { A: 25, B: 25, C: 50 };
+
+/**
+ * Parts where the student CHOOSES one question rather than answering all of
+ * them. The client confirmed on 13 Aug 2026 that Part A presents two questions
+ * and the student answers one; both are still scored so the report can give
+ * feedback on each, but only the higher of the two counts toward the grade.
+ *
+ * Consequences, both of which are handled explicitly elsewhere because getting
+ * either wrong silently changes grades:
+ *
+ *  - Each question in the group is worth the FULL part points, not a share of
+ *    them, because whichever one counts is worth the whole 25. Summing the
+ *    group would mark Part A out of 50, so sumBlueprintPoints() counts a
+ *    choice group once.
+ *  - The partial-coverage deduction must not fire here. It exists for sets
+ *    where every sub-question is required (see coverageDeduction.js); on a
+ *    choose-one part, answering exactly one is compliance, not partial
+ *    coverage, and deducting for it penalises the student for following the
+ *    instructions.
+ */
+const CHOICE_PARTS = new Set(["A"]);
+
+/**
+ * Total points a layout is marked out of, counting each choice group once.
+ * Use this rather than summing `points`, which double-counts Part A.
+ */
+function sumBlueprintPoints(layout) {
+  const seenGroups = new Set();
+  return (layout || []).reduce((sum, bp) => {
+    if (bp.choice_group) {
+      if (seenGroups.has(bp.choice_group)) return sum;
+      seenGroups.add(bp.choice_group);
+    }
+    return sum + bp.points;
+  }, 0);
+}
 
 /**
  * The common layout: 2 + 1 + 2 questions. Kept as the default blueprint for
@@ -32,8 +70,10 @@ const PART_POINTS = { A: 25, B: 25, C: 50 };
  */
 
 const COBE_BLUEPRINT = [
-  { question_id: "1a", part: "A", points: 12.5, description: "Part A - Spoken Production, Personal Response (Q1)" },
-  { question_id: "1b", part: "A", points: 12.5, description: "Part A - Spoken Production, Personal Response (Q2)" },
+  // 25 each, not 12.5: the student answers one of the two and it is worth the
+  // whole of Part A. choice_group keeps them from being added together.
+  { question_id: "1a", part: "A", points: 25, choice_group: "A", description: "Part A - Spoken Production, Personal Response (Q1)" },
+  { question_id: "1b", part: "A", points: 25, choice_group: "A", description: "Part A - Spoken Production, Personal Response (Q2)" },
   { question_id: "2",  part: "B", points: 25,   description: "Part B - Project Presentation" },
   { question_id: "3",  part: "C", points: 25,   description: "Part C - Audio-Visual Response (Q1)" },
   { question_id: "4",  part: "C", points: 25,   description: "Part C - Audio-Visual Response (Q2)" },
@@ -196,9 +236,19 @@ function inspectLesson(questionList, lessonName = "", level = "5_UNITS_CEFR_B2")
       );
       continue;
     }
-    const points = PART_POINTS[part] / found.length;
+    // On a choose-one part every question carries the full part points,
+    // because whichever the student answers is worth all of them.
+    const isChoice = CHOICE_PARTS.has(part);
+    const points = isChoice ? PART_POINTS[part] : PART_POINTS[part] / found.length;
     slots.forEach(([question_id, description], i) => {
-      layout.push({ question_id, part, points, description, source: found[i] });
+      layout.push({
+        question_id,
+        part,
+        points,
+        description,
+        source: found[i],
+        ...(isChoice ? { choice_group: part } : {}),
+      });
     });
   }
 
@@ -259,6 +309,10 @@ function mapLessonToExamQuestions(
     description: slot.description,
     part: slot.part,
     weight: slot.points,
+    // Carried through so the scorer knows Part A is a choose-one group; without
+    // it the two 25-point questions are added together and Part A is marked
+    // out of 50.
+    choice_group: slot.choice_group || null,
     question_text: String(slot.source.text || "").trim(),
     id_detection: slot.source.ID_detection,
     audioFilePath: audioByIdDetection[slot.source.ID_detection] || null,
@@ -316,6 +370,10 @@ async function mapLessonToExamQuestionsAsync(
     description: slot.description,
     part: slot.part,
     weight: slot.points,
+    // Carried through so the scorer knows Part A is a choose-one group; without
+    // it the two 25-point questions are added together and Part A is marked
+    // out of 50.
+    choice_group: slot.choice_group || null,
     question_text: String(slot.source.text || "").trim(),
     id_detection: slot.source.ID_detection,
     audioFilePath: audioByIdDetection[slot.source.ID_detection] || null,
@@ -327,6 +385,8 @@ module.exports = {
   COBE_BLUEPRINT,
   PART_POINTS,
   PART_SLOTS,
+  CHOICE_PARTS,
+  sumBlueprintPoints,
   getBlueprint,
   getExamTotalPoints,
   getBlueprintEntry,

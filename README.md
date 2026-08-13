@@ -364,6 +364,23 @@ test/        Unit tests + manual harnesses
 
 ## Scoring rules worth knowing
 
+**Part A is choose-one.** The student is shown two questions and answers one,
+so Part A's 25 points go to whichever answer scores higher — not 12.5 to each.
+Both answers are still transcribed, scored and printed with a full breakdown,
+because the client wants feedback on both; the one that did not count is
+badged `feedback only — not counted` in the report and carries
+`countsTowardFinal: false` in the Report Object.
+
+Two consequences are easy to get wrong and are handled explicitly:
+
+- Each Part A question carries `points: 25`, so a naive sum marks Part A out
+  of 50. Use `sumBlueprintPoints()`, which counts a choice group once.
+- The partial-coverage deduction is skipped for Part A. That rule exists for
+  sets where every sub-question is required; here, answering one of two is
+  compliance. It lands on Topic Development, which is half the grade, so
+  letting it fire would quietly cost the student 12.5 points for following the
+  instructions.
+
 **Deductions do not stack.** If several apply to one answer, the largest is
 used — not the sum. This follows the Ministry rubric's "0% for the entire
 section" wording; compounding them would push scores below zero.

@@ -92,10 +92,21 @@ function buildPartScores(examResult) {
     const row = byKey[key];
     const r = resultById[String(bp.question_id)];
     row.questionIds.push(bp.question_id);
-    row.pointsPossible += bp.points;
-    // An unattempted question earns 0 of its points — it does not shrink the
-    // denominator. Same rule as the exam total in evaluateFullExam step 5.
-    if (r) row.pointsEarned += (r.final_question_score / 100) * (r.weight ?? bp.points);
+
+    // On a choose-one part (Part A) the two questions share one 25-point
+    // allocation and only the better answer scores, so the row takes the
+    // points once and the best result rather than the sum. Adding them would
+    // mark Part A out of 50 and let a student earn 25 twice.
+    const earned = r ? (r.final_question_score / 100) * (r.weight ?? bp.points) : 0;
+    if (bp.choice_group) {
+      row.pointsPossible = bp.points;
+      row.pointsEarned = Math.max(row.pointsEarned, earned);
+    } else {
+      row.pointsPossible += bp.points;
+      // An unattempted question earns 0 of its points — it does not shrink
+      // the denominator. Same rule as the exam total in evaluateFullExam.
+      row.pointsEarned += earned;
+    }
   }
 
   return rows.map((row) => ({
@@ -128,6 +139,11 @@ function buildQuestionScore(r) {
     rawScore: r.raw_score,
     finalQuestionScore: r.final_question_score,
     deductionPct,
+    // Part A offers two questions and the student answers one; both are
+    // scored so the report can give feedback on each, but only the higher
+    // scoring one counts toward the grade. Without this the report shows two
+    // Part A scores and no way to tell which one was used.
+    countsTowardFinal: r.counts_toward_final !== false,
     criterionBreakdown: (r.criterion_breakdown || []).map((c) => ({
       criterionName: c.criterion_name,
       weight: c.weight,

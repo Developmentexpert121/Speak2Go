@@ -43,6 +43,7 @@ const {
   getExamTotalPoints,
   mapLessonToExamQuestions,
   isFullExamLesson,
+  sumBlueprintPoints,
 } = require(path.join(SRC, "config", "examBlueprint.js"));
 
 /**
@@ -92,8 +93,8 @@ function lessonQuestionList({ a = [7, 8], b = [20], c = [70, 85] } = {}) {
 }
 
 const PART_A_ONLY = [
-  { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
-  { question_id: "1b", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
+  { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
+  { question_id: "1b", part: "A", description: "Part A", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
 ];
 
 test("the exam is marked out of 100, not out of what was submitted", async () => {
@@ -140,7 +141,7 @@ test("a full perfect exam scores exactly 100", async () => {
 
 test("overall_score can never exceed 100 — a missing weight throws instead", async () => {
   const questions = [
-    { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
+    { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
     { question_id: "2", part: "B", description: "Part B", question_text: "q", audioFilePath: "perfect.wav" }, // no weight
   ];
   await assert.rejects(
@@ -162,8 +163,8 @@ test("weights totalling more than the exam total are rejected", async () => {
 
 test("duplicate question ids are rejected", async () => {
   const questions = [
-    { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
-    { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 12.5, audioFilePath: "perfect.wav" },
+    { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
+    { question_id: "1a", part: "A", description: "Part A", question_text: "q", weight: 25, audioFilePath: "perfect.wav" },
   ];
   await assert.rejects(() => evaluateFullExam({ questions, level: "5_UNITS_CEFR_B2" }), /duplicate question_id/);
 });
@@ -199,8 +200,12 @@ test("maps a real Speak2Go lesson questionList onto the exam blueprint", () => {
 
   assert.deepEqual(mapped.map((q) => q.question_id), ["1a", "1b", "2", "3", "4"]);
   assert.deepEqual(mapped.map((q) => q.part), ["A", "A", "B", "C", "C"]);
-  assert.deepEqual(mapped.map((q) => q.weight), [12.5, 12.5, 25, 25, 25]);
-  assert.equal(mapped.reduce((s, q) => s + q.weight, 0), 100);
+  // Part A's two questions carry 25 each, not 12.5: the student answers one
+  // of them and it is worth the whole of Part A.
+  assert.deepEqual(mapped.map((q) => q.weight), [25, 25, 25, 25, 25]);
+  // Which is why the total is taken through sumBlueprintPoints — a plain sum
+  // of the weights is 125 and would mark the exam out of the wrong number.
+  assert.equal(sumBlueprintPoints(mapped.map((q) => ({ points: q.weight, choice_group: q.choice_group }))), 100);
 
   const partB = mapped.find((q) => q.question_id === "2");
   assert.equal(partB.audioFilePath, "/tmp/partB.mp3");
@@ -236,7 +241,11 @@ test("maps exams whose order values differ from the common signature", () => {
     const label = JSON.stringify(orders);
 
     assert.deepEqual(mapped.map((q) => q.question_id), ["1a", "1b", "2", "3", "4"], label);
-    assert.equal(mapped.reduce((s, q) => s + q.weight, 0), 100, label);
+    assert.equal(
+      sumBlueprintPoints(mapped.map((q) => ({ points: q.weight, choice_group: q.choice_group }))),
+      100,
+      label
+    );
     // every slot resolved to a real question, none left blank
     assert.equal(mapped.every((q) => q.id_detection && q.question_text), true, label);
   }
@@ -256,9 +265,11 @@ test("maps the 2023 layout, where Part B is a two-question set", () => {
 
   assert.deepEqual(mapped.map((q) => q.question_id), ["1a", "1b", "2a", "2b", "3", "4"]);
   assert.deepEqual(mapped.map((q) => q.part), ["A", "A", "B", "B", "C", "C"]);
-  // Part B is still worth 25 points in total, split between its two questions
-  assert.deepEqual(mapped.map((q) => q.weight), [12.5, 12.5, 12.5, 12.5, 25, 25]);
-  assert.equal(mapped.reduce((s, q) => s + q.weight, 0), 100);
+  // Part B is still worth 25 in total, split between its two questions —
+  // unlike Part A, both of Part B's questions must be answered. Part A's two
+  // carry 25 each because only one of them counts.
+  assert.deepEqual(mapped.map((q) => q.weight), [25, 25, 12.5, 12.5, 25, 25]);
+  assert.equal(sumBlueprintPoints(mapped.map((q) => ({ points: q.weight, choice_group: q.choice_group }))), 100);
 });
 
 test("2023 Part B questions form one group and keep the time deduction", () => {

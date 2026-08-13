@@ -2,7 +2,28 @@ const { evaluateQuestion } = require("./evaluateExam");
 const { groupQuestions, isTimeBasedDeductionQuestion } = require("../utils/questionMeta");
 const { computeGroupCoverageDeduction, applyCoverageDeductionToQuestion } = require("../utils/coverageDeduction");
 const { computeTimeBasedDeduction } = require("../utils/timeBasedDeduction");
-const { getBlueprint, getExamTotalPoints } = require("../config/examBlueprint");
+const {
+  getBlueprint,
+  getExamTotalPoints,
+  getBlueprintEntry,
+  sumBlueprintPoints,
+} = require("../config/examBlueprint");
+
+/**
+ * The choice group a question belongs to, or null. Read from the layout when
+ * one was supplied, otherwise from the blueprint for the level.
+ *
+ * Part A is the only one today: the student is shown two questions and answers
+ * one, so the two share a single 25-point allocation rather than holding 12.5
+ * each. See CHOICE_PARTS in examBlueprint.js.
+ */
+function choiceGroupFor(questionId, level, examLayout) {
+  const fromLayout = (examLayout || []).find(
+    (bp) => String(bp.question_id) === String(questionId)
+  );
+  if (fromLayout) return fromLayout.choice_group || null;
+  return getBlueprintEntry(level, questionId)?.choice_group || null;
+}
 
 /**
  * Evaluates an entire exam as a unit, so that cross-question rules — the
@@ -101,6 +122,14 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
     const groupList = groups[groupId].map((q) => resultsByQuestionId[q.question_id]);
     if (groupList.length <= 1) continue;
 
+    // A choose-one part is exempt. The coverage rule exists for sets where
+    // every sub-question is required; on Part A the student is told to answer
+    // one of two, so answering one is compliance. Deducting for it would
+    // penalise the student for following the instructions — and because the
+    // deduction lands on Topic Development, which is half the grade, it is
+    // easily the largest silent scoring error in this file.
+    if (groupList.some((r) => choiceGroupFor(r.question_id, level, examLayout))) continue;
+
     const { deductionPct, answeredCount, totalCount } = computeGroupCoverageDeduction(groupList);
     if (deductionPct === 0) continue;
 
@@ -149,23 +178,70 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
   //    perfect 100 instead of a 50.)
   const allResults = Object.values(resultsByQuestionId);
 
-  const pointsEarned = allResults.reduce(
-    (sum, r) => sum + (r.final_question_score / 100) * r.weight,
-    0
-  );
+  // Points for one answer, if it is the one that counts.
+  const pointsFor = (r) => (r.final_question_score / 100) * r.weight;
+
+  // On a choose-one part only the BEST answer scores. Both are still returned
+  // and still carry a full breakdown — the client asked for feedback on both —
+  // but the loser contributes nothing to the grade, so they are marked rather
+  // than quietly added in. Ties keep the first, which is arbitrary but stable.
+  const bestByChoiceGroup = {};
+  for (const r of allResults) {
+    const group = choiceGroupFor(r.question_id, level, examLayout);
+    r.choice_group = group;
+    if (!group) {
+      r.counts_toward_final = true;
+      continue;
+    }
+    const current = bestByChoiceGroup[group];
+    if (!current || pointsFor(r) > pointsFor(current)) bestByChoiceGroup[group] = r;
+  }
+  for (const r of allResults) {
+    if (r.choice_group) r.counts_toward_final = bestByChoiceGroup[r.choice_group] === r;
+  }
+
+  const pointsEarned = allResults
+    .filter((r) => r.counts_toward_final)
+    .reduce((sum, r) => sum + pointsFor(r), 0);
   const overallScore = totalPoints > 0 ? (pointsEarned / totalPoints) * 100 : 0;
 
   const layout = (examLayout || getBlueprint(level)).map((bp) => ({
     question_id: bp.question_id,
     part: bp.part,
     points: bp.points,
+    choice_group: bp.choice_group || null,
     description: bp.description,
   }));
 
   const attemptedIds = new Set(allResults.map((r) => String(r.question_id)));
+
+  // A choose-one group forfeits its points only when NOTHING in it was
+  // answered. Listing the unchosen Part A question as "not attempted, 25
+  // points forfeited" would be wrong twice over: the student was never meant
+  // to answer it, and the 25 points were not lost — they were earned on the
+  // other one.
+  const answeredChoiceGroups = new Set(
+    allResults.map((r) => r.choice_group).filter(Boolean)
+  );
+  const seenForfeitedGroups = new Set();
+
   const unattempted = layout
     .filter((bp) => !attemptedIds.has(String(bp.question_id)))
-    .map((bp) => ({ question_id: bp.question_id, description: bp.description, points_forfeited: bp.points }));
+    .filter((bp) => {
+      if (!bp.choice_group) return true;
+      if (answeredChoiceGroups.has(bp.choice_group)) return false;
+      // Whole group missing: report it once, not once per offered question.
+      if (seenForfeitedGroups.has(bp.choice_group)) return false;
+      seenForfeitedGroups.add(bp.choice_group);
+      return true;
+    })
+    .map((bp) => ({
+      question_id: bp.question_id,
+      description: bp.choice_group
+        ? `${bp.description} (no Part ${bp.part} question answered)`
+        : bp.description,
+      points_forfeited: bp.points,
+    }));
 
   return {
     level,
@@ -207,7 +283,15 @@ function assertWeightsAreUsable(questions, level) {
     throw new Error(`evaluateFullExam: duplicate question_id(s): ${[...new Set(dupes)].join(", ")}`);
   }
 
-  const submitted = questions.reduce((s, q) => s + q.weight, 0);
+  // Counted through sumBlueprintPoints so a choose-one group counts once.
+  // Summing raw weights would total 125 for a full exam — both Part A
+  // questions carry 25 — and reject a perfectly valid submission.
+  const submitted = sumBlueprintPoints(
+    questions.map((q) => ({
+      points: q.weight,
+      choice_group: choiceGroupFor(q.question_id, level, null),
+    }))
+  );
   const blueprintTotal = getExamTotalPoints(level);
   if (submitted > blueprintTotal + 1e-9) {
     throw new Error(

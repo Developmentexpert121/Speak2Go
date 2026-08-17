@@ -153,7 +153,10 @@ app.post("/api/recordings/fetch", async (req, res) => {
  *         SemelMosad, schoolName }
  *     IDNumber is hashed before it is stored anywhere; the raw value is not
  *     retained past this function.
- *   - questions: JSON array of { question_id, question_text, localPath? }
+ *   - questions: JSON array of { question_id, question_text, localPath?,
+ *       audioFileUrl?, videoTranscription? }
+ *     videoTranscription is the transcript of the clip that question refers
+ *     to, null or text. It falls back to the shared partCTranscript above.
  *   - callbackUrl: optional, where the signed result is POSTed when the run ends
  *   - files named audio_<question_id>
  *
@@ -207,7 +210,20 @@ app.post("/api/exams", upload.any(), (req, res) => {
         // file, so this is whatever Speak2Go could resolve — passed through
         // to the report when present, null when not.
         audioFileUrl: supplied.audioFileUrl || null,
-        referenceMaterial: bp.part === "C" && partCTranscript ? partCTranscript : null,
+        // The transcript of the clip the student watched.
+        //
+        // The client confirmed on 13 Aug 2026 that this rides on the question
+        // object as `videoTranscription`, null or text, rather than being one
+        // transcript shared across Part C. That matters: Part C's two
+        // questions can reference different clips, and feeding the wrong
+        // transcript to the scorer makes a correct answer look off-topic.
+        //
+        // partCTranscript stays as the fallback so the operator UI, which has
+        // a single paste box, keeps working.
+        referenceMaterial:
+          supplied.videoTranscription ??
+          supplied.video_transcription ??
+          (bp.part === "C" && partCTranscript ? partCTranscript : null),
       };
     });
 

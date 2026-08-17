@@ -190,6 +190,12 @@ Object's `reportHtmlUrl` points there — a presigned URL, unless
 `S3_PUBLIC_BASE_URL` says the bucket is fronted by CloudFront. Objects are
 uploaded private and server-side encrypted; no public ACL is set.
 
+**Reports stay private** — confirmed by the client on 13 Aug 2026. The access
+mechanism is still being settled with Avinoam, so the presigned URL is the
+interim answer: it expires (`S3_URL_TTL_SECONDS`, 7 days by default) and needs
+no bucket policy change. Do not set `S3_PUBLIC_BASE_URL` to a public origin
+without that conversation concluding.
+
 Without credentials the HTML is kept in memory and served from this process
 instead, so a missing credential degrades the URL rather than failing the run.
 `GET /api/health` reports which of the two is in effect.
@@ -428,7 +434,7 @@ which is inherent to the model.
 
 - **No database writes.** Phase 1 is evaluation only; results are not synced back.
 - **Reports are held in memory** and are evicted on restart, unless S3 upload is configured — the uploaded HTML survives independently of this process.
-- **Part C reference clips are not transcribed automatically.** The clip transcript is passed in manually; only 4 of 33 reference lessons carry usable Part C text.
-- **Report language is English only.** The rubric and the spec document are in English; whether teachers want a Hebrew or bilingual report is still an open question with the client.
+- **Part C reference clips are not transcribed automatically.** Speak2Go supplies the clip transcript as `videoTranscription` on each question (null or text); only 4 of 33 reference lessons carry usable Part C text, so the operator UI keeps a paste box as a fallback.
+- **Report language is English only**, confirmed by the client on 13 Aug 2026 ("English only for now"). Hebrew is not ruled out later.
 - **The blueprint endpoint is hardcoded** to the standard 5-slot layout. The code handles the split-Part-B shape, but no lesson selector drives it.
 - **`isUnder20Seconds` measures wall-clock duration**, while the rule says "20 seconds *of speech*". Both readings agreed on all 22 sample recordings, but they can diverge on an answer with long silences.

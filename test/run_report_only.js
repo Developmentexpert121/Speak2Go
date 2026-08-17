@@ -281,7 +281,7 @@ async function main() {
   // one of the things the client is reviewing.
   const html = renderReportHtml(report, {
     studentName: "Test Student",
-    gradeClass: "י'3",
+    className: "י'3",
     schoolName: "Sample High School",
     examLevel: "5 Points (COBE)",
     cefrLevel: "B2",

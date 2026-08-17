@@ -115,7 +115,7 @@ function renderStudentPreview() {
     <div class="obj-grid">
       <span>studentId</span><code>${s.IDNumber ? "sha256(salt + IDNumber) → 32 hex" : "— no ID entered"}</code>
       <span>fullName</span><code>${esc(full)}</code>
-      <span>gradeClass</span><code>${esc(gc)}</code>
+      <span>className</span><code>${esc(gc)}</code>
       <span>schoolName</span><code>${esc(s.schoolName || "—")}</code>
       <span>schoolId</span><code>${esc(s.SemelMosad || "—")}</code>
     </div>`;
@@ -487,7 +487,7 @@ function renderResults(job) {
         </p>
         <p class="hero-sub">
           ${esc(so.schoolName || "—")} · Semel ${esc(so.schoolId || "—")} · Class ${esc(
-    so.gradeClass || "—"
+    so.className || "—"
   )}
         </p>
         <p style="margin-top:8px">
@@ -543,7 +543,7 @@ function renderResults(job) {
           ${[
             ["studentId", so.studentId],
             ["fullName", so.fullName],
-            ["gradeClass", so.gradeClass],
+            ["className", so.className],
             ["schoolName", so.schoolName],
             ["schoolId", so.schoolId],
           ]

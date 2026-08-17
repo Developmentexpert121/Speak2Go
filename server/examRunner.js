@@ -96,7 +96,7 @@ async function runExam({
       cefrLevel: examObject?.cefrLevel || null,
       dateExecuted: examObject?.dateExecuted || new Date().toISOString(),
       schoolName: studentObject?.schoolName || null,
-      gradeClass: studentObject?.gradeClass || null,
+      className: studentObject?.className || null,
     };
 
     const urls = await buildReports({ examId, examResult, report, meta });

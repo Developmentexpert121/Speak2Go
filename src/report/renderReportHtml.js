@@ -158,7 +158,7 @@ function renderReportHtml(report, meta = {}) {
   </table>`
     : "";
 
-  const studentLine = [meta.gradeClass, meta.schoolName].filter(Boolean).map(esc).join(" · ");
+  const studentLine = [meta.className, meta.schoolName].filter(Boolean).map(esc).join(" · ");
 
   return `<!DOCTYPE html>
 <html><head><meta charset="UTF-8"><title>COBE - Spoken English Exam Test Report</title>

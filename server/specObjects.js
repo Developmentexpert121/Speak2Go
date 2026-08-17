@@ -10,7 +10,7 @@
  *   --------------   ----------------------------------------------------
  *   studentId        users.IDNumber        (Israeli ID — indexed, real PII)
  *   fullName         users.FirstName + users.LastName
- *   gradeClass       users.StudentGrade + users.StudentMakbila,
+ *   className        users.StudentGrade + users.StudentMakbila,
  *                    or users.ClassID[] -> classes.grade / classes.name
  *   schoolId         users.SemelMosad     (also on clients.SemelMosad)
  *   schoolName       clients.Name, joined on SemelMosad
@@ -110,6 +110,10 @@ function buildStudentObject(src = {}) {
   // StudentGrade is the year ("10"), StudentMakbila the parallel class ("3"),
   // giving the familiar "10/3". classes.grade ("Y10") is the fallback when the
   // student record carries a ClassID instead.
+  //
+  // Named `className` on the way out: the client renamed the field on 13 Aug
+  // 2026. The local variable keeps the old name to avoid shadowing anything
+  // that reads like a DOM property.
   const grade = (src.StudentGrade ?? "").toString().trim();
   const makbila = (src.StudentMakbila ?? "").toString().trim();
   const gradeClass =
@@ -118,7 +122,7 @@ function buildStudentObject(src = {}) {
   return {
     studentId: hashStudentId(src.IDNumber ?? src.studentIdRaw ?? src.student_id_raw),
     fullName,
-    gradeClass,
+    className: gradeClass,
     schoolName: src.schoolName ?? src.school_name ?? null,
     schoolId: (src.SemelMosad ?? src.schoolId ?? src.school_id ?? null) || null,
   };

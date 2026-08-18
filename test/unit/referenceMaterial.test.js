@@ -53,7 +53,7 @@ stub(path.join(SRC, "services", "llmScoring.js"), {
 
 const { evaluateFullExam } = require(path.join(SRC, "pipeline", "evaluateFullExam.js"));
 
-const LEVEL = "5_UNITS_CEFR_B2";
+const LEVEL = "5_UNITS_B2";
 
 test("each Part C question is scored against its own clip transcript", async () => {
   seen.length = 0;

@@ -70,7 +70,7 @@ function groupQuestions(questions, level) {
  * silently skipped the time deduction on every 2023-format exam.
  */
 function isTimeBasedDeductionQuestion(question, level) {
-  const isEligibleLevel = level === "5_UNITS_CEFR_B2" || level === "4_UNITS_CEFR_B1";
+  const isEligibleLevel = level === "5_UNITS_B2" || level === "4_UNITS_B1";
   if (!isEligibleLevel) return false;
 
   const { part, group_id } = parseQuestionMeta(question, level);

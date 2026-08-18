@@ -44,27 +44,31 @@ const crypto = require("crypto");
  * that was never written for it.
  */
 const CEFR_BY_LEVEL = {
-  "5_UNITS_CEFR_B2": "B2",
-  "4_UNITS_CEFR_B1": "B1",
+  "5_UNITS_B2": "B2",
+  "4_UNITS_B1": "B1",
 };
 
 const LEVEL_LABEL = {
-  "5_UNITS_CEFR_B2": "5 Points (COBE)",
-  "4_UNITS_CEFR_B1": "4 Points (COBE)",
+  "5_UNITS_B2": "5 Points (COBE)",
+  "4_UNITS_B1": "4 Points (COBE)",
 };
 
 /**
- * Level codes as the spec doc spells them, mapped from the shorter forms this
- * codebase used before the doc was available.
+ * Inbound level codes we accept besides the canonical ones.
  *
- * Kept as a tolerant front door rather than a hard rename: the platform may
- * still have the old strings baked into a config somewhere, and rejecting an
- * otherwise-valid exam over a missing "CEFR_" would be a bad trade. Everything
- * downstream of normalizeLevel() sees only the canonical spelling.
+ * The canonical spelling is Speak2Go's: `5_UNITS_B2` / `4_UNITS_B1`, confirmed
+ * by the client on 13 Aug 2026 and matching their schema sheet. An interim
+ * draft of the spec document used a longer `..._CEFR_...` form and this
+ * codebase followed it for a day, so those strings may still be baked into a
+ * config somewhere on either side.
+ *
+ * Kept as a tolerant front door rather than a hard cut: rejecting an otherwise
+ * valid exam over a spelling we ourselves once emitted would be a bad trade.
+ * Everything downstream of normalizeLevel() sees only the canonical form.
  */
 const LEVEL_ALIASES = {
-  "5_UNITS_B2": "5_UNITS_CEFR_B2",
-  "4_UNITS_B1": "4_UNITS_CEFR_B1",
+  "5_UNITS_CEFR_B2": "5_UNITS_B2",
+  "4_UNITS_CEFR_B1": "4_UNITS_B1",
 };
 
 function normalizeLevel(level) {

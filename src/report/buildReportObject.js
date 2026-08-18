@@ -13,7 +13,7 @@
  * identifier that only LOOK like snake_case fields and must not move:
  *   - rubric sub-criterion ids (`sc1_relevancy`, `sc8_correct_grammar`),
  *     which are matched by string against rubrics.json and the LLM's reply;
- *   - level codes (`5_UNITS_CEFR_B2`);
+ *   - level codes (`5_UNITS_B2`);
  *   - Speak2Go's own Mongo columns (`IDNumber`, `SemelMosad`), which are
  *     inputs, not outputs.
  * Listing the output keys by hand costs a few lines and makes it impossible
@@ -31,6 +31,8 @@
  * Anything unexpected returns null so the renderer shows the number alone
  * rather than inventing a star count.
  */
+const { buildRecordingUrl } = require("./recordingUrl");
+
 const STAR_BY_SCORE = { 25: 1, 54: 2, 75: 3, 100: 4 };
 
 function starsFor(score) {
@@ -116,7 +118,7 @@ function buildPartScores(examResult) {
   }));
 }
 
-function buildQuestionScore(r) {
+function buildQuestionScore(r, reportId) {
   // The deduction actually applied is the worst single one, not the sum —
   // deductions in this spec don't stack (see evaluateFullExam step 4). Recorded
   // here so a reader can reconcile rawScore against finalQuestionScore without
@@ -135,7 +137,13 @@ function buildQuestionScore(r) {
     // The client asked (12 Aug 2026) that the report carry the student's own
     // words for Part C, not just the clip's. It is carried for every part.
     answerTranscript: r.transcript ?? "",
-    audioFileUrl: r.audio_file_url ?? null,
+    // The S3 object key Speak2Go handed us, echoed back so a result can be
+    // traced to the exact recording that produced it. It is a key, not a URL:
+    // the recordings bucket is private and stays that way.
+    audioFileKey: r.audio_file_key ?? null,
+    // The playable link, pointing at Speak2Go's own app rather than at S3, so
+    // it never expires and they authorise each playback. See recordingUrl.js.
+    recordingUrl: buildRecordingUrl({ reportId, questionId: r.question_id }),
     rawScore: r.raw_score,
     finalQuestionScore: r.final_question_score,
     deductionPct,
@@ -165,8 +173,8 @@ function buildQuestionScore(r) {
   };
 }
 
-function buildReportObject(examResult, teacherRecommendations) {
-  const questionScores = examResult.question_results.map(buildQuestionScore);
+function buildReportObject(examResult, teacherRecommendations, { reportId = null } = {}) {
+  const questionScores = examResult.question_results.map((r) => buildQuestionScore(r, reportId));
 
   const deductionsTable = examResult.question_results.flatMap((r) =>
     (r.deductions || []).map((d) => ({

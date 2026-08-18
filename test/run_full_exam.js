@@ -108,7 +108,7 @@ async function main() {
   await saveReferenceMaterial(PART_C_CLIP_ID, PART_C_TRANSCRIPT);
   console.log(`[fixture] Part C reference material seeded for clip ID: ${PART_C_CLIP_ID}`);
 
-  const examResult = await evaluateFullExam({ questions: EXAM_QUESTIONS, level: "5_UNITS_CEFR_B2" });
+  const examResult = await evaluateFullExam({ questions: EXAM_QUESTIONS, level: "5_UNITS_B2" });
   console.log("--- EXAM RESULT ---");
   console.log(JSON.stringify(examResult, null, 2));
 

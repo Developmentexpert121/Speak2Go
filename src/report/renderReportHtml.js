@@ -65,7 +65,13 @@ function renderReportHtml(report, meta = {}) {
 
       ${
         q.answerTranscript
-          ? `<div class="qtranscript"><span class="label">Answer transcript</span>${esc(q.answerTranscript)}</div>`
+          ? `<div class="qtranscript">
+               <span class="label">Answer transcript${
+                 // The link points at the Speak2Go app, which authorises the
+                 // playback itself — see recordingUrl.js for why this is not a
+                 // presigned S3 link.
+                 q.recordingUrl ? ` · <a class="play" href="${esc(q.recordingUrl)}">listen to the recording</a>` : ""
+               }</span>${esc(q.answerTranscript)}</div>`
           : `<div class="no-score">No answer recorded for this question.</div>`
       }
 
@@ -179,6 +185,7 @@ function renderReportHtml(report, meta = {}) {
   .qscore { font-weight:700; font-size:16px; }
   /* Grey, not red: this answer is not a failure, it simply is not the one
      that counted. */
+  .play { color:#0A6E9E; text-decoration:none; border-bottom:1px solid #9BD3F0; }
   .not-counted { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#667582; background:#F1F4F7; border-radius:4px; padding:2px 7px; white-space:nowrap; }
   .label { display:block; color:#667582; font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; margin-bottom:3px; }
   .qtext { font-size:12.5px; margin-bottom:8px; }

@@ -119,7 +119,7 @@ test("re-serializing the body breaks verification — receivers must use raw byt
   // and a receiver that verifies against JSON.stringify(req.body) will fail
   // for any sender that pretty-prints. Documented here so the requirement is
   // not lost.
-  const body = JSON.stringify({ overallScore: 72, level: "5_UNITS_CEFR_B2" }, null, 2);
+  const body = JSON.stringify({ overallScore: 72, level: "5_UNITS_B2" }, null, 2);
   const { signature, timestamp } = signPayload(body, SECRET, 1000);
 
   const reSerialized = JSON.stringify(JSON.parse(body));

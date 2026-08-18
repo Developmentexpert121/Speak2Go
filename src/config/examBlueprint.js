@@ -80,8 +80,8 @@ const COBE_BLUEPRINT = [
 ];
 
 const BLUEPRINTS = {
-  "5_UNITS_CEFR_B2": COBE_BLUEPRINT,
-  "4_UNITS_CEFR_B1": COBE_BLUEPRINT,
+  "5_UNITS_B2": COBE_BLUEPRINT,
+  "4_UNITS_B1": COBE_BLUEPRINT,
 };
 
 /**
@@ -208,7 +208,7 @@ function segmentLesson(questionList) {
  * @returns {{ isFullExam: boolean, reasons: string[], layout: Array|null,
  *             segmentation: object|null, shape: string|null }}
  */
-function inspectLesson(questionList, lessonName = "", level = "5_UNITS_CEFR_B2") {
+function inspectLesson(questionList, lessonName = "", level = "5_UNITS_B2") {
   getBlueprint(level); // validates the level
   const segmentation = segmentLesson(questionList);
 
@@ -261,7 +261,7 @@ function inspectLesson(questionList, lessonName = "", level = "5_UNITS_CEFR_B2")
   };
 }
 
-function isFullExamLesson(questionList, lessonName = "", level = "5_UNITS_CEFR_B2") {
+function isFullExamLesson(questionList, lessonName = "", level = "5_UNITS_B2") {
   return inspectLesson(questionList, lessonName, level).isFullExam;
 }
 
@@ -290,7 +290,7 @@ function isFullExamLesson(questionList, lessonName = "", level = "5_UNITS_CEFR_B
 function mapLessonToExamQuestions(
   questionList,
   audioByIdDetection = {},
-  level = "5_UNITS_CEFR_B2",
+  level = "5_UNITS_B2",
   options = {}
 ) {
   const lessonName = options.lessonName || "";
@@ -341,7 +341,7 @@ function mapLessonToExamQuestions(
 async function mapLessonToExamQuestionsAsync(
   questionList,
   audioByIdDetection = {},
-  level = "5_UNITS_CEFR_B2",
+  level = "5_UNITS_B2",
   options = {}
 ) {
   const lessonName = options.lessonName || "";

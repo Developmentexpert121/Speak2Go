@@ -11,7 +11,7 @@ async function main() {
   const result = await evaluateQuestion({
     audioFilePath: audioPath,
     questionText: "Describe a project you worked on recently and explain what you learned from it.",
-    level: "5_UNITS_CEFR_B2", // try "4_UNITS_CEFR_B1" for the 4-point rubric
+    level: "5_UNITS_B2", // try "4_UNITS_B1" for the 4-point rubric
   });
 
   console.log(JSON.stringify(result, null, 2));

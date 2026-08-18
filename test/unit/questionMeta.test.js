@@ -40,16 +40,16 @@ test("groups questions by group_id, preserving sub_id order", () => {
 
 test("time-based deduction applies ONLY to Part B, question 2, COBE 4/5", () => {
   const q2PartB = { question_id: "2", description: "PART B: Project Presentation" };
-  assert.equal(isTimeBasedDeductionQuestion(q2PartB, "5_UNITS_CEFR_B2"), true);
-  assert.equal(isTimeBasedDeductionQuestion(q2PartB, "4_UNITS_CEFR_B1"), true);
+  assert.equal(isTimeBasedDeductionQuestion(q2PartB, "5_UNITS_B2"), true);
+  assert.equal(isTimeBasedDeductionQuestion(q2PartB, "4_UNITS_B1"), true);
 
   // Wrong part
   const q2PartA = { question_id: "2", description: "Part A - Spoken Production" };
-  assert.equal(isTimeBasedDeductionQuestion(q2PartA, "5_UNITS_CEFR_B2"), false);
+  assert.equal(isTimeBasedDeductionQuestion(q2PartA, "5_UNITS_B2"), false);
 
   // Wrong question number
   const q3PartB = { question_id: "3", description: "PART B: Project Presentation" };
-  assert.equal(isTimeBasedDeductionQuestion(q3PartB, "5_UNITS_CEFR_B2"), false);
+  assert.equal(isTimeBasedDeductionQuestion(q3PartB, "5_UNITS_B2"), false);
 
   // Unknown level — the time-based rule is COBE 4/5 point only
   assert.equal(isTimeBasedDeductionQuestion(q2PartB, "SOME_OTHER_LEVEL"), false);

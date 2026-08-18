@@ -11,7 +11,7 @@ const { buildReportObject, buildPartScores, starsFor } = require("../../src/repo
  */
 function examResultFixture(overrides = {}) {
   return {
-    level: "5_UNITS_CEFR_B2",
+    level: "5_UNITS_B2",
     overall_score: 61.5,
     points_earned: 61.5,
     points_possible: 100,
@@ -31,7 +31,7 @@ function examResultFixture(overrides = {}) {
         description: "Part A - Personal Response (Q1)",
         question_text: "Tell me about social media.",
         transcript: "I think social media is mostly useful.",
-        audio_file_url: null,
+        audio_file_key: "recordings/2026/08/abc/1a.mp3",
         raw_score: 75,
         final_question_score: 75,
         deductions: [],
@@ -87,7 +87,7 @@ test("the report carries the spec doc's per-question fields", () => {
   assert.equal(q.questionId, "1a");
   assert.equal(q.questionText, "Tell me about social media.");
   assert.equal(q.answerTranscript, "I think social media is mostly useful.");
-  assert.equal(q.audioFileUrl, null);
+  assert.equal(q.audioFileKey, "recordings/2026/08/abc/1a.mp3");
   assert.equal(q.rawScore, 75);
   assert.equal(q.finalQuestionScore, 75);
   assert.equal(q.speechMetrics.wordsPerMinute, 84);

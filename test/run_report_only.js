@@ -28,7 +28,7 @@ const { renderReportPdf } = require("../src/report/renderReportPdf");
  * is the boundary that renames it. See the header of buildReportObject.js.
  */
 const MOCK_EXAM_RESULT = {
-  level: "5_UNITS_CEFR_B2",
+  level: "5_UNITS_B2",
   overall_score: 34.22,
   points_earned: 34.22,
   points_possible: 100,
@@ -60,7 +60,7 @@ const MOCK_EXAM_RESULT = {
       question_text: "Tell me about something you have done recently that you are proud of.",
       transcript:
         "Last month I organised a food drive at my school. I was responsible for talking to the shops in my neighbourhood and asking them to donate. At first I was quite nervous about calling strangers, but after the third or fourth shop it became much easier. In the end we collected about two hundred kilos of food, and I am proud of that because it was my own idea and I saw it through.",
-      audio_file_url: null,
+      audio_file_key: "recordings/2026/08/demo/1a.mp3",
       raw_score: 80,
       final_question_score: 80,
       deductions: [],
@@ -120,7 +120,7 @@ const MOCK_EXAM_RESULT = {
       question_text: "Do you think young people spend too much time on social media?",
       transcript:
         "Yes, I think so. Many people in my class are on their phone all the time, even in the break. It is a problem because... because they don't talk to each other. But also it is good sometimes, for example if you want to know what happens in the world. So I think it depends.",
-      audio_file_url: null,
+      audio_file_key: "recordings/2026/08/demo/1b.mp3",
       raw_score: 64.28,
       final_question_score: 64.28,
       deductions: [],
@@ -178,7 +178,7 @@ const MOCK_EXAM_RESULT = {
       description: "Part B - Project Presentation",
       question_text: "Present your project. You have three minutes.",
       transcript: "Um, my project is about recycling. Yeah. That's it.",
-      audio_file_url: null,
+      audio_file_key: "recordings/2026/08/demo/2.mp3",
       raw_score: 0,
       final_question_score: 0,
       deductions: [
@@ -205,7 +205,7 @@ const MOCK_EXAM_RESULT = {
       question_text: "What was the main problem described in the video clip, and how was it solved?",
       transcript:
         "The video was about a city that had a lot of traffic. They said the roads were full every morning and people waited maybe one hour. So the mayor decided to make the buses free, and after that more people used the bus instead of the car. I think it worked because at the end they showed the roads were more empty.",
-      audio_file_url: null,
+      audio_file_key: "recordings/2026/08/demo/3.mp3",
       raw_score: 71.1,
       final_question_score: 56.88,
       deductions: [
@@ -267,11 +267,25 @@ async function main() {
   //    buildReportObject.js's shape assumptions, not in STT/LLM)
   console.log("Building Report Object...");
   const skipLLM = process.argv.includes("--no-llm");
+  // With --no-llm we still need something in this section: it is part of what
+  // the client reviews, and an empty panel reads as a missing feature rather
+  // than a skipped API call. This is real output captured from a live
+  // generateRecommendations() run against this same fixture, not invented.
+  const CAPTURED_RECOMMENDATIONS =
+    "Focus on improving delivery skills, as this was identified as a weakness " +
+    "in both questions 1a and 3. Incorporate vocabulary-building exercises to " +
+    "address the halting fluency observed in question 1b. Additionally, " +
+    "emphasize the importance of meeting answer length requirements to avoid " +
+    "deductions, as seen in question 2, and fully addressing all elements of " +
+    "a question, as seen in question 3.";
+
   const recommendations = skipLLM
-    ? "(skipped — run without --no-llm to generate real recommendations)"
+    ? CAPTURED_RECOMMENDATIONS
     : await generateRecommendations(MOCK_EXAM_RESULT);
 
-  const report = buildReportObject(MOCK_EXAM_RESULT, recommendations);
+  const report = buildReportObject(MOCK_EXAM_RESULT, recommendations, {
+    reportId: "exam_sample_2026_08",
+  });
   console.log(JSON.stringify(report, null, 2));
 
   // 2. Render HTML (also pure, no external calls)

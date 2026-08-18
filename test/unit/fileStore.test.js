@@ -7,7 +7,7 @@ const { saveExamResult, getExamResult, listExams } = require("../../src/storage/
 const TEST_EXAM_ID = "test-exam-unit-" + Date.now();
 
 test("save then get returns the same record", async () => {
-  await saveExamResult(TEST_EXAM_ID, { studentId: "s1", level: "5_UNITS_CEFR_B2", examResult: { overall_score: 88 } });
+  await saveExamResult(TEST_EXAM_ID, { studentId: "s1", level: "5_UNITS_B2", examResult: { overall_score: 88 } });
   const loaded = await getExamResult(TEST_EXAM_ID);
 
   assert.equal(loaded.examId, TEST_EXAM_ID);
@@ -22,7 +22,7 @@ test("getExamResult returns null for an unknown id", async () => {
 });
 
 test("listExams filters by studentId", async () => {
-  await saveExamResult(TEST_EXAM_ID + "-b", { studentId: "s2", level: "5_UNITS_CEFR_B2", examResult: {} });
+  await saveExamResult(TEST_EXAM_ID + "-b", { studentId: "s2", level: "5_UNITS_B2", examResult: {} });
   const forS1 = await listExams({ studentId: "s1" });
   assert.ok(forS1.some((r) => r.examId === TEST_EXAM_ID));
   assert.ok(!forS1.some((r) => r.studentId === "s2"));

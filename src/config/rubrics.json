@@ -1,5 +1,5 @@
 {
-  "5_UNITS_CEFR_B2": {
+  "5_UNITS_B2": {
     "label": "5 Point COBE",
     "cefr_level": "B2",
     "criteria": [
@@ -128,7 +128,7 @@
       }
     ]
   },
-  "4_UNITS_CEFR_B1": {
+  "4_UNITS_B1": {
     "label": "4 Point COBE",
     "cefr_level": "B1",
     "criteria": [

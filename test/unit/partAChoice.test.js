@@ -58,7 +58,7 @@ stub(path.join(SRC, "services", "llmScoring.js"), {
 const { evaluateFullExam } = require(path.join(SRC, "pipeline", "evaluateFullExam.js"));
 const { buildPartScores } = require(path.join(__dirname, "..", "..", "src", "report", "buildReportObject.js"));
 
-const LEVEL = "5_UNITS_CEFR_B2";
+const LEVEL = "5_UNITS_B2";
 
 /** Part A only, so the arithmetic under test is not buried in a full exam. */
 function partA({ aText = "strong", bText = "weak", bAudio = "weak.wav" } = {}) {

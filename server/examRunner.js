@@ -22,6 +22,7 @@ const { updateJob } = require("./jobStore");
 const { buildReports } = require("./reportStore");
 const { buildExamObject } = require("./specObjects");
 const { deliverResult } = require("./webhook");
+const { downloadRecordingByKey, isConfigured: s3RecordingsConfigured } = require("./s3Recordings");
 
 /**
  * @param {object} params
@@ -58,6 +59,30 @@ async function runExam({
       await saveReferenceMaterial(partCClipId, partCTranscript);
     }
 
+    // Pull any recording we were given as an S3 key rather than a file.
+    // Speak2Go supplies `audioFileKey` into the private recordings bucket; we
+    // read it with GetObjectCommand, exactly as their own app does.
+    //
+    // A key that cannot be fetched is recorded on the question and left
+    // unanswered rather than aborting the run: one unreadable recording should
+    // cost that question, not the other four.
+    const fetchErrors = [];
+    for (const q of questions) {
+      if (q.audioFilePath || !q.audioFileKey) continue;
+      if (!s3RecordingsConfigured()) {
+        fetchErrors.push({ questionId: q.question_id, reason: "no AWS credentials configured" });
+        continue;
+      }
+      try {
+        updateJob(examId, { stage: "fetching_recordings", currentQuestionId: q.question_id });
+        q.audioFilePath = await downloadRecordingByKey({ key: q.audioFileKey, examId });
+        tempFiles.push(q.audioFilePath);
+      } catch (err) {
+        fetchErrors.push({ questionId: q.question_id, reason: err.message });
+      }
+    }
+    if (fetchErrors.length) updateJob(examId, { recordingFetchErrors: fetchErrors });
+
     const examResult = await evaluateFullExam({
       questions,
       level,
@@ -82,7 +107,9 @@ async function runExam({
       recommendations = `(Teacher recommendations could not be generated: ${err.message})`;
     }
 
-    const report = buildReportObject(examResult, recommendations);
+    // reportId is the examId: it is what the report is keyed by everywhere else,
+    // and it is the "r" in the playback links the report renders.
+    const report = buildReportObject(examResult, recommendations, { reportId: examId });
 
     // Spec section 2 asks for both an HTML report for inline rendering and a
     // downloadable PDF, and 3.1 stores their urls on the Exam Object. Render

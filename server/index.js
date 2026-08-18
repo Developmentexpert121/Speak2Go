@@ -43,8 +43,8 @@ const upload = multer({
  * and has been removed rather than left showing as pending work.
  */
 const LEVELS = [
-  { level: "5_UNITS_CEFR_B2", label: LEVEL_LABEL["5_UNITS_CEFR_B2"], cefr: "B2", supported: true },
-  { level: "4_UNITS_CEFR_B1", label: LEVEL_LABEL["4_UNITS_CEFR_B1"], cefr: "B1", supported: true },
+  { level: "5_UNITS_B2", label: LEVEL_LABEL["5_UNITS_B2"], cefr: "B2", supported: true },
+  { level: "4_UNITS_B1", label: LEVEL_LABEL["4_UNITS_B1"], cefr: "B1", supported: true },
 ];
 
 /**
@@ -84,7 +84,7 @@ app.get("/api/blueprint", (req, res) => {
   // against the pre-spec-doc level codes should get a blueprint, not a 400.
   // Skipping it here would mean the two endpoints disagree about which levels
   // exist, which is worse than either answer on its own.
-  const level = normalizeLevel(req.query.level || "5_UNITS_CEFR_B2");
+  const level = normalizeLevel(req.query.level || "5_UNITS_B2");
   const known = LEVELS.find((l) => l.level === level);
   if (known && !known.supported) {
     return res.status(422).json({ error: known.blockedReason, level, blocked: true });
@@ -154,7 +154,7 @@ app.post("/api/recordings/fetch", async (req, res) => {
  *     IDNumber is hashed before it is stored anywhere; the raw value is not
  *     retained past this function.
  *   - questions: JSON array of { question_id, question_text, localPath?,
- *       audioFileUrl?, videoTranscription? }
+ *       audioFileKey?, videoTranscription? }
  *     videoTranscription is the transcript of the clip that question refers
  *     to, null or text. It falls back to the shared partCTranscript above.
  *   - callbackUrl: optional, where the signed result is POSTed when the run ends
@@ -168,7 +168,7 @@ app.post("/api/exams", upload.any(), (req, res) => {
     // normalizeLevel accepts the pre-spec-doc spellings ("5_UNITS_B2") and
     // returns the canonical one, so an older caller is not rejected over a
     // missing "CEFR_".
-    const level = normalizeLevel(req.body.level || "5_UNITS_CEFR_B2");
+    const level = normalizeLevel(req.body.level || "5_UNITS_B2");
     const known = LEVELS.find((l) => l.level === level);
     if (known && !known.supported) {
       return res.status(422).json({ error: known.blockedReason });
@@ -206,10 +206,11 @@ app.post("/api/exams", upload.any(), (req, res) => {
         weight: bp.points,
         question_text: supplied.question_text || DEFAULT_QUESTION_TEXTS[bp.question_id] || "",
         audioFilePath,
-        // Spec 3.6's per-question audio_file_url. We only ever receive the
-        // file, so this is whatever Speak2Go could resolve — passed through
-        // to the report when present, null when not.
-        audioFileUrl: supplied.audioFileUrl || null,
+        // The S3 key of the student's recording in the private recordings
+        // bucket. Speak2Go switched this from a URL to a key on 13 Aug 2026:
+        // recordings are sensitive, so we read them with GetObjectCommand the
+        // same way their app does rather than passing links around.
+        audioFileKey: supplied.audioFileKey || supplied.audio_file_key || null,
         // The transcript of the clip the student watched.
         //
         // The client confirmed on 13 Aug 2026 that this rides on the question

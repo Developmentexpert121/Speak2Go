@@ -64,8 +64,8 @@ blueprint handles both shapes and still totals 100.
 
 | Level | CEFR | Level code | Status |
 |---|---|---|---|
-| 5 points | B2 | `5_UNITS_CEFR_B2` | supported |
-| 4 points | B1 | `4_UNITS_CEFR_B1` | supported |
+| 5 points | B2 | `5_UNITS_B2` | supported |
+| 4 points | B1 | `4_UNITS_B1` | supported |
 
 3-point Boost (A2) is **out of scope**. It appeared in an early draft of the
 specification and was carried here for a while as "blocked, awaiting rubric",
@@ -129,6 +129,8 @@ itself; these are the ones that matter:
 | `WEBHOOK_SIGNING_SECRET` | posting results back | no secret, nothing is sent — see below |
 | `WEBHOOK_ALLOWED_HOSTS` | posting results back | SSRF guard, empty means no deliveries |
 | `WEBHOOK_MAX_RETRIES` | optional | defaults to `3`, on top of the first attempt |
+| `S3_RECORDINGS_BUCKET` | reading student audio | read-only; default `s2g-recordings` |
+| `SPEAK2GO_APP_BASE_URL` | optional | where report playback links point; default `https://app.speak2go.com` |
 | `AWS_ACCESS_KEY_ID` / `_SECRET_ACCESS_KEY` | uploading report HTML | must be an IAM key, not a console login |
 | `S3_REPORT_BUCKET` / `AWS_REGION` | uploading report HTML | default `oral-exams-s2g` in `us-east-1` |
 
@@ -340,7 +342,7 @@ document writes these fields in snake_case; the rename happens in
 upstream of them — the scoring engine, the rubric config, the penalty rules —
 keeps its original spelling. That boundary is deliberate. Three families of
 identifier look like snake_case fields but must never move: rubric
-sub-criterion ids (`sc1_relevancy`), level codes (`5_UNITS_CEFR_B2`), and
+sub-criterion ids (`sc1_relevancy`), level codes (`5_UNITS_B2`), and
 Speak2Go's own Mongo columns (`IDNumber`, `SemelMosad`), which are inputs
 rather than outputs. A unit test walks the whole report tree asserting no key
 contains an underscore, and a second one asserts the rubric ids still do.
@@ -367,6 +369,30 @@ test/        Unit tests + manual harnesses
 ```
 
 ---
+
+## Recordings and playback links
+
+Speak2Go supplies each answer as an S3 object **key** (`audioFileKey`), not a
+URL. Recordings are sensitive and the bucket is private, so they are read with
+`GetObjectCommand` exactly as Speak2Go's own app does. The credential needs
+**read-only** access: if it could write, a bug in the report path could
+overwrite a student's recording, which is the evidence behind their grade.
+
+Reports link to a recording as:
+
+```
+https://app.speak2go.com/#/recordings/play?r=<reportId>&q=<questionId>
+```
+
+Not a presigned S3 link, and the client ruled that out explicitly. A report is
+a document that may be opened months later — a presigned URL inside it is a
+dead link by then, and the only alternative would be making the recordings
+bucket readable by anyone holding an object path. Pointing at Speak2Go's own
+app means the link never expires and they authorise each playback themselves.
+
+A key that cannot be fetched costs that question, not the run: the failure is
+recorded on the job as `recordingFetchErrors` and the other answers still get
+graded.
 
 ## Scoring rules worth knowing
 

@@ -61,18 +61,20 @@ test("className falls back sensibly when the parallel class is missing", () => {
 });
 
 test("the exam object carries the level in all three forms", () => {
-  const exam = buildExamObject({ examId: "exam_abc", level: "5_UNITS_CEFR_B2" });
+  const exam = buildExamObject({ examId: "exam_abc", level: "5_UNITS_B2" });
 
-  assert.equal(exam.level, "5_UNITS_CEFR_B2");
+  assert.equal(exam.level, "5_UNITS_B2");
   assert.equal(exam.cefrLevel, "B2");
   assert.equal(exam.levelLabel, "5 Points (COBE)");
 });
 
-test("the pre-spec-doc level codes are still accepted", () => {
-  // An older caller should not be rejected over a missing "CEFR_".
-  assert.equal(normalizeLevel("5_UNITS_B2"), "5_UNITS_CEFR_B2");
-  assert.equal(normalizeLevel("4_UNITS_B1"), "4_UNITS_CEFR_B1");
-  assert.equal(normalizeLevel("5_UNITS_CEFR_B2"), "5_UNITS_CEFR_B2");
+test("the interim CEFR level codes are still accepted", () => {
+  // The canonical spelling is Speak2Go's own (5_UNITS_B2). A draft of the spec
+  // document briefly used a longer _CEFR_ form which this codebase emitted for
+  // a day, so it is accepted inbound rather than rejected.
+  assert.equal(normalizeLevel("5_UNITS_CEFR_B2"), "5_UNITS_B2");
+  assert.equal(normalizeLevel("4_UNITS_CEFR_B1"), "4_UNITS_B1");
+  assert.equal(normalizeLevel("5_UNITS_B2"), "5_UNITS_B2");
   // Anything unrecognised passes through untouched, to be rejected later by
   // the blueprint lookup with a message naming the known levels.
   assert.equal(normalizeLevel("3_UNITS_BOOST"), "3_UNITS_BOOST");

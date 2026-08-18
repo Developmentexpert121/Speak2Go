@@ -45,7 +45,7 @@ const FOLDER_TO_QUESTION = {
   "Part C Q2": "4",
 };
 
-const LEVEL = "5_UNITS_CEFR_B2";
+const LEVEL = "5_UNITS_B2";
 
 /* ── inventory ─────────────────────────────────────────── */
 

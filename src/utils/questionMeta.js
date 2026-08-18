@@ -1,4 +1,5 @@
 const { getBlueprint, getBlueprintEntry } = require("../config/examBlueprint");
+const { partFromQuestionType, groupIdFromQuestionType } = require("./questionType");
 
 /**
  * Derives structural metadata from a Question Object:
@@ -7,20 +8,26 @@ const { getBlueprint, getBlueprintEntry } = require("../config/examBlueprint");
  *  - part: A / B / C
  *
  * `part` is resolved in priority order:
- *   1. An explicit `part` field (what mapLessonToExamQuestions supplies).
- *   2. Parsing the `description` string — the original behaviour.
- *   3. The exam blueprint, looked up by question_id.
+ *   1. Speak2Go's `questionType` ("a1", "b", "c2"...), which is the only one
+ *      of these that survives a randomly-generated questionId.
+ *   2. An explicit `part` field (what mapLessonToExamQuestions supplies).
+ *   3. Parsing the `description` string — the original behaviour.
+ *   4. The exam blueprint, looked up by question_id.
  *
- * Step 3 is the new one. Previously step 2 was the ONLY path, which meant
- * live platform data (which has neither a `part` nor a `description` field)
- * silently produced part = null and disabled the Part B time deduction.
+ * questionType leads because the client confirmed on 13 Aug 2026 that
+ * questionId is a hash carrying no structure. Steps 2-4 remain for the
+ * operator UI and the lesson-record adapter, which both work from our own ids.
  */
 function parseQuestionMeta(question, level) {
+  const questionType = question.questionType ?? question.question_type ?? null;
+  const typedPart = partFromQuestionType(questionType);
+  const typedGroup = groupIdFromQuestionType(questionType);
+
   const idMatch = String(question.question_id).match(/^(\d+)([a-z]?)$/i);
-  const group_id = idMatch ? idMatch[1] : String(question.question_id);
+  const group_id = typedGroup || (idMatch ? idMatch[1] : String(question.question_id));
   const sub_id = idMatch && idMatch[2] ? idMatch[2].toLowerCase() : null;
 
-  let part = question.part || null;
+  let part = typedPart || question.part || null;
 
   if (!part) {
     const desc = (question.description || "").toUpperCase();
@@ -75,6 +82,12 @@ function isTimeBasedDeductionQuestion(question, level) {
 
   const { part, group_id } = parseQuestionMeta(question, level);
   if (part !== "B") return false;
+
+  // When Speak2Go supplied a questionType, part === "B" already settles it:
+  // the type IS the authority on which part a question belongs to, and the
+  // blueprint cross-check below would compare "B" against our own ids ("2")
+  // and never match — silently disabling this deduction on every live exam.
+  if (question.questionType ?? question.question_type) return true;
 
   const partBGroups = new Set(
     getBlueprint(level)

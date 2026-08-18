@@ -7,7 +7,9 @@ const {
   getExamTotalPoints,
   getBlueprintEntry,
   sumBlueprintPoints,
+  CHOICE_PARTS,
 } = require("../config/examBlueprint");
+const { partFromQuestionType } = require("../utils/questionType");
 
 /**
  * The choice group a question belongs to, or null. Read from the layout when
@@ -17,7 +19,16 @@ const {
  * one, so the two share a single 25-point allocation rather than holding 12.5
  * each. See CHOICE_PARTS in examBlueprint.js.
  */
-function choiceGroupFor(questionId, level, examLayout) {
+function choiceGroupFor(question, level, examLayout) {
+  // questionType first, for the same reason as everywhere else: against a
+  // hashed questionId the layout and blueprint lookups below both miss, and a
+  // missed choice group is not a soft failure — both Part A answers would be
+  // counted and Part A would be marked out of 50.
+  const type = question.questionType ?? question.question_type ?? null;
+  const typedPart = partFromQuestionType(type);
+  if (typedPart) return CHOICE_PARTS.has(typedPart) ? typedPart : null;
+
+  const questionId = question.question_id;
   const fromLayout = (examLayout || []).find(
     (bp) => String(bp.question_id) === String(questionId)
   );
@@ -59,7 +70,17 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
 
   const totalPoints = examTotalPoints ?? getExamTotalPoints(level);
   const groups = groupQuestions(questions, level); // { "1": [1a, 1b], "2": [2], ... }
-  const orderedGroupIds = Object.keys(groups).sort((a, b) => Number(a) - Number(b));
+  // Numeric where the ids are our own ("1", "2", "3"), lexicographic where
+  // they come from questionType ("A", "B", "C1"). A bare Number() subtraction
+  // yields NaN on the latter, and a NaN comparator leaves the order undefined —
+  // which would make the prior-answer context a question sees depend on object
+  // key order rather than on the exam.
+  const orderedGroupIds = Object.keys(groups).sort((a, b) => {
+    const na = Number(a);
+    const nb = Number(b);
+    if (Number.isFinite(na) && Number.isFinite(nb)) return na - nb;
+    return String(a).localeCompare(String(b));
+  });
 
   const resultsByQuestionId = {};
 
@@ -90,6 +111,9 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
         ...result,
         question_id: q.question_id,
         group_id: groupId,
+        // Speak2Go's semantic label ("a1", "b", "c2"). Carried because
+        // questionId is a hash: every structural rule downstream reads this.
+        question_type: q.questionType ?? q.question_type ?? null,
         part: q.part ?? null,
         weight: q.weight,
         description: q.description,
@@ -128,7 +152,7 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
     // penalise the student for following the instructions — and because the
     // deduction lands on Topic Development, which is half the grade, it is
     // easily the largest silent scoring error in this file.
-    if (groupList.some((r) => choiceGroupFor(r.question_id, level, examLayout))) continue;
+    if (groupList.some((r) => choiceGroupFor(r, level, examLayout))) continue;
 
     const { deductionPct, answeredCount, totalCount } = computeGroupCoverageDeduction(groupList);
     if (deductionPct === 0) continue;
@@ -187,7 +211,7 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
   // than quietly added in. Ties keep the first, which is arbitrary but stable.
   const bestByChoiceGroup = {};
   for (const r of allResults) {
-    const group = choiceGroupFor(r.question_id, level, examLayout);
+    const group = choiceGroupFor(r, level, examLayout);
     r.choice_group = group;
     if (!group) {
       r.counts_toward_final = true;
@@ -289,7 +313,7 @@ function assertWeightsAreUsable(questions, level) {
   const submitted = sumBlueprintPoints(
     questions.map((q) => ({
       points: q.weight,
-      choice_group: choiceGroupFor(q.question_id, level, null),
+      choice_group: choiceGroupFor(q, level, null),
     }))
   );
   const blueprintTotal = getExamTotalPoints(level);

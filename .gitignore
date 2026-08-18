@@ -25,3 +25,7 @@ sample_audio/
 
 .DS_Store
 *.log
+
+# Real-audio report: contains a real student's transcript. Never commit.
+test/real_report.html
+test/real_report.pdf

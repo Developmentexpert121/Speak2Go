@@ -29,12 +29,12 @@ test("report HTML escapes hostile content from every untrusted field", () => {
       partScores: [
         { part: "A", label: `Part A <script>alert("part")</script>`, questionIds: ["1a"], pointsEarned: 20, pointsPossible: 25 },
       ],
-      questionScores: [
+      questions: [
         {
           questionId: "1a",
-          // description and deduction reasons are model-generated text that
-          // can quote the student's own transcript
-          description: `Part A </td></tr><script>alert(1)</script>`,
+          // typeDescription and deduction reasons are model-generated text
+          // that can quote the student's own transcript
+          typeDescription: `Part A </td></tr><script>alert(1)</script>`,
           // The transcript is the most dangerous field in the report: it is a
           // verbatim recording of whatever the student chose to say, and a
           // student who says "script alert" gets it written into the page.
@@ -42,7 +42,7 @@ test("report HTML escapes hostile content from every untrusted field", () => {
           answerTranscript: `I said <script>alert("transcript")</script> out loud`,
           rawScore: 80,
           finalQuestionScore: 80,
-          deductionPct: 0,
+          deduction: 0,
           criterionBreakdown: [],
           speechMetrics: {},
         },
@@ -51,7 +51,7 @@ test("report HTML escapes hostile content from every untrusted field", () => {
         {
           questionId: "1a",
           reason: `Foul language detected — <img src=x onerror=alert(document.cookie)>`,
-          deductionPct: 100,
+          deduction: 100,
         },
       ],
       teacherRecommendations: `Work on <b>fluency</b> & pacing`,
@@ -88,7 +88,7 @@ test("an unanswered question is named, not left as a silent zero", () => {
   // teacher, so the forfeited questions have to be spelled out.
   const html = renderReportHtml({
     overallScore: 50,
-    questionScores: [],
+    questions: [],
     deductionsTable: [],
     unattemptedQuestions: [
       { questionId: "4", description: "Part C - Personal Opinion", pointsForfeited: 25 },
@@ -103,7 +103,7 @@ test("an unanswered question is named, not left as a silent zero", () => {
 test("the Not Attempted section is omitted when the exam was answered in full", () => {
   const html = renderReportHtml({
     overallScore: 50,
-    questionScores: [],
+    questions: [],
     deductionsTable: [],
     unattemptedQuestions: [],
   });
@@ -113,7 +113,7 @@ test("the Not Attempted section is omitted when the exam was answered in full", 
 test("report HTML renders a question whose score is missing without throwing", () => {
   const html = renderReportHtml({
     overallScore: undefined,
-    questionScores: [{ questionId: "2", description: "Part B", criterionBreakdown: [] }],
+    questions: [{ questionId: "2", typeDescription: "Part B", criterionBreakdown: [] }],
     deductionsTable: [],
     teacherRecommendations: null,
   });

@@ -43,13 +43,13 @@ function renderReportHtml(report, meta = {}) {
         .join("")
     : `<tr><td colspan="3">No part breakdown available.</td></tr>`;
 
-  const questionBlocks = (report.questionScores || [])
+  const questionBlocks = (report.questions || [])
     .map(
       (q) => `
     <div class="question-block">
       <div class="question-head">
         <span class="qid">Q${esc(q.questionId)}</span>
-        <span class="qdesc">${esc(q.description)}</span>
+        <span class="qdesc">${esc(q.typeDescription)}</span>
         ${
           // Part A shows two questions and only the better one counts. Both
           // are printed with a full breakdown, so without this badge a reader
@@ -78,7 +78,7 @@ function renderReportHtml(report, meta = {}) {
       <div class="qmeta">
         <span>Raw score <strong>${num(q.rawScore)}</strong></span>
         <span>Final score <strong>${num(q.finalQuestionScore)}</strong></span>
-        <span>Deductions <strong class="ded-pct">${esc(q.deductionPct)}%</strong></span>
+        <span>Deductions <strong class="ded-pct">${esc(q.deduction)}%</strong></span>
         ${q.speechMetrics?.wordsPerMinute ? `<span>${esc(q.speechMetrics.wordsPerMinute)} wpm</span>` : ""}
       </div>
 
@@ -134,7 +134,7 @@ function renderReportHtml(report, meta = {}) {
         <tr>
           <td>Q${esc(d.questionId)}</td>
           <td>${esc(d.reason)}</td>
-          <td class="ded-pct right">−${esc(d.deductionPct)}%</td>
+          <td class="ded-pct right">−${esc(d.deduction)}%</td>
         </tr>`
         )
         .join("")

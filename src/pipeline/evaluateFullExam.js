@@ -114,6 +114,11 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
         // Speak2Go's semantic label ("a1", "b", "c2"). Carried because
         // questionId is a hash: every structural rule downstream reads this.
         question_type: q.questionType ?? q.question_type ?? null,
+        // The clip transcript this answer was scored against. Carried so the
+        // report can echo it back as videoTranscription — without it the field
+        // would always serialise as null and a result could not be reproduced
+        // from the payload alone.
+        reference_material: q.referenceMaterial ?? null,
         part: q.part ?? null,
         weight: q.weight,
         description: q.description,

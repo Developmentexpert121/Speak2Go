@@ -66,7 +66,7 @@ test("the report carries the S3 key and the playback link, never a presigned url
     { reportId: "exam_abc123" }
   );
 
-  const q = report.questionScores[0];
+  const q = report.questions[0];
   assert.equal(q.audioFileKey, "recordings/2026/abc/1a.mp3");
   assert.equal(q.recordingUrl, "https://app.speak2go.com/#/recordings/play?r=exam_abc123&q=1a");
 
@@ -89,5 +89,5 @@ test("without a reportId the link is omitted rather than half-built", () => {
     },
     ""
   );
-  assert.equal(report.questionScores[0].recordingUrl, null);
+  assert.equal(report.questions[0].recordingUrl, null);
 });

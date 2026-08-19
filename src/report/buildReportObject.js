@@ -131,9 +131,22 @@ function buildQuestionScore(r, reportId) {
 
   return {
     questionId: r.question_id,
+    // Speak2Go's semantic label ("a1", "b", "c2"), echoed back. Their schema
+    // sheet carries it on the Question, and it is the only field that tells a
+    // consumer which part a hashed questionId belongs to.
+    questionType: r.question_type ?? null,
+    typeDescription: r.description ?? null,
+    // Retained alongside typeDescription: `part` is a single letter the
+    // renderer groups by, and deriving it from prose on every read would be
+    // fragile.
     part: r.part ?? null,
-    description: r.description,
     questionText: r.question_text ?? null,
+    // The clip transcript this answer was scored against, echoed so a result
+    // can be reproduced from the payload alone.
+    videoTranscription: r.reference_material ?? null,
+    // Points this question is worth. On Part A both offered questions carry
+    // the full 25, because only one of them counts.
+    weight: r.weight ?? null,
     // The client asked (12 Aug 2026) that the report carry the student's own
     // words for Part C, not just the clip's. It is carried for every part.
     answerTranscript: r.transcript ?? "",
@@ -146,7 +159,10 @@ function buildQuestionScore(r, reportId) {
     recordingUrl: buildRecordingUrl({ reportId, questionId: r.question_id }),
     rawScore: r.raw_score,
     finalQuestionScore: r.final_question_score,
-    deductionPct,
+    // Named `deduction` to match the client's schema sheet. It is a
+    // percentage 0-100, and it is the WORST single deduction rather than the
+    // sum, because deductions in this spec do not stack.
+    deduction: deductionPct,
     // Part A offers two questions and the student answers one; both are
     // scored so the report can give feedback on each, but only the higher
     // scoring one counts toward the grade. Without this the report shows two
@@ -174,13 +190,16 @@ function buildQuestionScore(r, reportId) {
 }
 
 function buildReportObject(examResult, teacherRecommendations, { reportId = null } = {}) {
-  const questionScores = examResult.question_results.map((r) => buildQuestionScore(r, reportId));
+  const questions = examResult.question_results.map((r) => buildQuestionScore(r, reportId));
 
   const deductionsTable = examResult.question_results.flatMap((r) =>
     (r.deductions || []).map((d) => ({
       questionId: r.question_id,
+      // `reason` is not in the client's schema sheet; it is kept because a
+      // deductions table a teacher cannot explain to a student is not much use
+      // in an appeal. Confirmation on adding it formally is still outstanding.
       reason: d.reason,
-      deductionPct: d.deductionPct,
+      deduction: d.deductionPct,
     }))
   );
 
@@ -203,7 +222,9 @@ function buildReportObject(examResult, teacherRecommendations, { reportId = null
     pointsEarned: examResult.points_earned,
     pointsPossible: examResult.points_possible,
     partScores: buildPartScores(examResult),
-    questionScores,
+    // Named `questions` to match the client's schema sheet, which reuses the
+    // input Question type with the scoring fields filled in.
+    questions,
     deductionsTable,
     teacherRecommendations,
     unattemptedQuestions,

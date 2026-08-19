@@ -76,13 +76,13 @@ test("every key in the report object is camelCase", () => {
 
 test("rubric sub-criterion ids keep their snake_case spelling", () => {
   const report = buildReportObject(examResultFixture(), "");
-  const ids = report.questionScores[0].criterionBreakdown[0].subCriteria.map((s) => s.id);
+  const ids = report.questions[0].criterionBreakdown[0].subCriteria.map((s) => s.id);
   assert.deepEqual(ids, ["sc1_relevancy", "sc2_prompt_understanding"]);
 });
 
 test("the report carries the spec doc's per-question fields", () => {
   const report = buildReportObject(examResultFixture(), "");
-  const q = report.questionScores[0];
+  const q = report.questions[0];
 
   assert.equal(q.questionId, "1a");
   assert.equal(q.questionText, "Tell me about social media.");
@@ -113,7 +113,7 @@ test("deductionPct on a question is the worst single deduction, not their sum", 
   ];
 
   const report = buildReportObject(result, "");
-  assert.equal(report.questionScores[0].deductionPct, 35);
+  assert.equal(report.questions[0].deduction, 35);
   assert.equal(report.deductionsTable.length, 2, "the table still lists both reasons");
   assert.equal(report.deductionsTable[0].questionId, "1a");
 });
@@ -177,8 +177,8 @@ test("a question zeroed before rubric evaluation produces an empty breakdown, no
   result.question_results[0].final_question_score = 0;
 
   const report = buildReportObject(result, "");
-  assert.deepEqual(report.questionScores[0].criterionBreakdown, []);
-  assert.equal(report.questionScores[0].finalQuestionScore, 0);
+  assert.deepEqual(report.questions[0].criterionBreakdown, []);
+  assert.equal(report.questions[0].finalQuestionScore, 0);
 });
 
 test("suppressed flags and unattempted questions are carried in camelCase", () => {
@@ -204,4 +204,49 @@ test("the top-level score fields survive unchanged", () => {
   assert.equal(report.pointsEarned, 61.5);
   assert.equal(report.pointsPossible, 100);
   assert.equal(report.teacherRecommendations, "Focus on developing answers.");
+});
+
+test("the Report Object matches the client's schema sheet field for field", () => {
+  // The contract Speak2Go reads. Named keys, asserted explicitly, because the
+  // failure mode is not an exception — it is a consumer quietly reading
+  // undefined and rendering a blank report.
+  const report = buildReportObject(examResultFixture(), "notes", { reportId: "exam_x" });
+
+  assert.deepEqual(
+    Object.keys(report).sort(),
+    [
+      "deductionsTable",
+      "overallScore",
+      "partScores",
+      "pointsEarned",
+      "pointsPossible",
+      "questions",
+      "suppressedFlags",
+      "teacherRecommendations",
+      "unattemptedQuestions",
+    ],
+    "top-level keys drifted from the schema sheet"
+  );
+
+  const q = report.questions[0];
+  for (const key of [
+    "questionId",
+    "questionType",
+    "typeDescription",
+    "questionText",
+    "videoTranscription",
+    "weight",
+    "rawScore",
+    "deduction",
+    "finalQuestionScore",
+  ]) {
+    assert.ok(key in q, `Question is missing the schema field "${key}"`);
+  }
+
+  // The deductions table uses the sheet's spelling too.
+  const result = examResultFixture();
+  result.question_results[0].deductions = [{ reason: "coverage", deductionPct: 20 }];
+  const withDeduction = buildReportObject(result, "", { reportId: "exam_x" });
+  assert.equal(withDeduction.deductionsTable[0].deduction, 20);
+  assert.equal("deductionPct" in withDeduction.deductionsTable[0], false);
 });

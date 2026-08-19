@@ -407,7 +407,7 @@ function renderQuestionCard(r) {
     ${
       (r.deductions || []).length
         ? `<div class="q-deductions">${r.deductions
-            .map((d) => `<span class="ded">−${esc(d.deductionPct)}% · ${esc(d.reason)}</span>`)
+            .map((d) => `<span class="ded">−${esc(d.deduction)}% · ${esc(d.reason)}</span>`)
             .join("")}</div>`
         : ""
     }
@@ -438,7 +438,7 @@ function renderDeductions(report) {
                   (d) => `<tr>
                     <td class="mono">Q${esc(d.questionId)}</td>
                     <td>${esc(d.reason)}</td>
-                    <td class="right neg">−${esc(d.deductionPct)}%</td>
+                    <td class="right neg">−${esc(d.deduction)}%</td>
                   </tr>`
                 )
                 .join("")}

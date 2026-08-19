@@ -163,10 +163,10 @@ function renderSlots() {
       // stored alongside the recording, we can warn about a penalty before
       // spending a Deepgram call to discover it.
       let warn = "";
-      if (got && got.timeBand && s.part === "B" && got.timeBand.deductionPct > 0) {
+      if (got && got.timeBand && s.part === "B" && got.timeBand.deduction > 0) {
         warn = `<div class="slot-warn">Part B time band <strong>${esc(
           got.timeBand.band
-        )}</strong> → −${got.timeBand.deductionPct}% from all criteria</div>`;
+        )}</strong> → −${got.timeBand.deduction}% from all criteria</div>`;
       } else if (got && got.duration != null && got.duration < 20) {
         warn = `<div class="slot-warn">Under 0:20 → this section scores 0 (spec §4.C)</div>`;
       }
@@ -282,8 +282,8 @@ async function openPicker(questionId) {
 
 function recRow(userEmail, r, enabled) {
   const band =
-    r.timeBand && r.timeBand.deductionPct > 0
-      ? `<span class="band bad">${esc(r.timeBand.band)} · −${r.timeBand.deductionPct}%</span>`
+    r.timeBand && r.timeBand.deduction > 0
+      ? `<span class="band bad">${esc(r.timeBand.band)} · −${r.timeBand.deduction}%</span>`
       : r.timeBand
       ? `<span class="band ok">${esc(r.timeBand.band)}</span>`
       : "";
@@ -578,7 +578,7 @@ function renderResults(job) {
             .join("");
 
           const deds = (q.deductions || [])
-            .map((d) => `<div class="ded-item">−${d.deductionPct}% · ${esc(d.reason)}</div>`)
+            .map((d) => `<div class="ded-item">−${d.deduction}% · ${esc(d.reason)}</div>`)
             .join("");
 
           const m = q.audio_metrics || {};
@@ -586,7 +586,7 @@ function renderResults(job) {
           <div class="q-card">
             <div class="q-head">
               <span class="qid">${esc(q.question_id)}</span>
-              <span class="grow">${esc(q.description)}</span>
+              <span class="grow">${esc(q.typeDescription)}</span>
               <span class="q-score" style="color:${scoreColor(q.final_question_score)}">
                 ${q.final_question_score}<span class="q-of">/100</span>
               </span>
@@ -623,7 +623,7 @@ function renderResults(job) {
         ${report.deductionsTable
           .map(
             (d) =>
-              `<tr><td>${esc(d.questionId)}</td><td>${esc(d.reason)}</td><td>−${d.deductionPct}%</td></tr>`
+              `<tr><td>${esc(d.questionId)}</td><td>${esc(d.reason)}</td><td>−${d.deduction}%</td></tr>`
           )
           .join("")}
       </tbody>

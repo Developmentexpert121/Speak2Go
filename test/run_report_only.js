@@ -295,6 +295,9 @@ async function main() {
   // one of the things the client is reviewing.
   const html = renderReportHtml(report, {
     studentName: "Test Student",
+    examName: "Simulation 2 · 2024 COBE FP",
+    examDescription: "Full practice exam — Parts A, B and C",
+    schoolId: "440123",
     className: "י'3",
     schoolName: "Sample High School",
     examLevel: "5 Points (COBE)",

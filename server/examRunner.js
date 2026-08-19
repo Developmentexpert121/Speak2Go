@@ -119,6 +119,12 @@ async function runExam({
     const meta = {
       examId,
       studentName: studentObject?.fullName || "Student",
+      // Shown under the report title. The client's design reference puts the
+      // exam's own name and description in the header, so a teacher holding
+      // two reports can tell which exam each one is.
+      examName: examObject?.name || null,
+      examDescription: examObject?.description || null,
+      schoolId: studentObject?.schoolId || null,
       examLevel: examObject?.levelLabel || level,
       cefrLevel: examObject?.cefrLevel || null,
       dateExecuted: examObject?.dateExecuted || new Date().toISOString(),

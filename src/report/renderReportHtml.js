@@ -45,6 +45,51 @@ function renderReportHtml(report, meta = {}) {
     return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, "0")}`;
   };
 
+  /**
+   * The overall score as a ring, taken from the client's design reference.
+   * Drawn as inline SVG rather than an image so the document stays
+   * self-contained, and coloured by band rather than with a fixed gradient so
+   * a failing score still reads as failing at a glance.
+   */
+  const scoreGauge = (score) => {
+    const value = Number.isFinite(Number(score)) ? Math.max(0, Math.min(100, Number(score))) : 0;
+    const radius = 52;
+    const circumference = 2 * Math.PI * radius;
+    const filled = (value / 100) * circumference;
+    const colour = scoreColor(value);
+    return `
+      <svg class="gauge" viewBox="0 0 130 130" width="130" height="130" role="img" aria-label="${esc(num(score))} out of 100">
+        <circle cx="65" cy="65" r="${radius}" fill="none" stroke="#E8EEF3" stroke-width="13"></circle>
+        <circle cx="65" cy="65" r="${radius}" fill="none" stroke="${colour}" stroke-width="13"
+                stroke-linecap="round" stroke-dasharray="${filled.toFixed(2)} ${(circumference - filled).toFixed(2)}"
+                transform="rotate(-90 65 65)"></circle>
+        <text x="65" y="63" text-anchor="middle" class="gauge-num" fill="${colour}">${num(score)}</text>
+        <text x="65" y="82" text-anchor="middle" class="gauge-den">out of 100</text>
+      </svg>`;
+  };
+
+  /**
+   * The four Student Object fields as labelled cards, which is the client's
+   * reference layout and also what he asked for in the video — the student
+   * details set large enough to read at a glance rather than as one grey line.
+   * Icons are inline paths; nothing is fetched.
+   */
+  const ICONS = {
+    student: '<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8"/>',
+    class: '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 20V9"/>',
+    school: '<path d="M12 3 2 9h20L12 3Z"/><path d="M5 10v9h14v-9M9 19v-5h6v5"/>',
+    id: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M7 10h4M7 14h10"/>',
+  };
+  const studentCard = (icon, label, value) => `
+      <div class="scard">
+        <svg class="sicon" viewBox="0 0 24 24" fill="none" stroke="#0A6E9E" stroke-width="1.7"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS[icon]}</svg>
+        <div>
+          <span class="slabel">${esc(label)}</span>
+          <span class="svalue">${esc(value || "—")}</span>
+        </div>
+      </div>`;
+
   const partRows = (report.partScores || []).length
     ? report.partScores
         .map(
@@ -199,17 +244,32 @@ function renderReportHtml(report, meta = {}) {
      too light to carry text. #0A6E9E is the blue used for type. */
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#1F2730; margin:0; padding:32px 32px 48px; }
 
-  .header { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #17ADF2; padding-bottom:14px; margin-bottom:18px; }
-  .brand-logo { height:44px; display:block; margin-bottom:12px; }
-  .doc-title { font-weight:700; font-size:20px; letter-spacing:-.01em; }
-  .overall { font-size:38px; font-weight:700; line-height:1; text-align:right; }
-  .overall .of { font-size:16px; font-weight:400; color:#667582; }
+  .topbar { display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #17ADF2; padding-bottom:10px; }
+  .brand-logo { height:38px; display:block; }
+  .topbar-date { font-size:12px; color:#667582; }
 
-  /* Set large deliberately: this is the first thing anyone checks, and at 13px
-     it was being missed entirely. */
-  .student-name { font-size:22px; font-weight:700; color:#0F2E42; margin-top:10px; }
-  .student-line { font-size:14px; color:#46545F; margin-top:3px; }
-  .exam-line { font-size:13px; color:#667582; margin-top:2px; }
+  .titleblock { text-align:center; margin:18px 0 4px; }
+  .doc-title { font-weight:700; font-size:21px; letter-spacing:-.01em; }
+  .exam-name { font-size:14px; color:#46545F; margin-top:4px; font-weight:600; }
+  .exam-desc { font-size:12.5px; color:#667582; margin-top:2px; }
+
+  /* The score as a ring, from the client's design reference. Centred and
+     given room, because it is the one number every reader looks for first. */
+  .scoreblock { text-align:center; margin:6px 0 4px; }
+  .gauge { display:inline-block; }
+  .gauge-num { font-size:30px; font-weight:700; font-family:'Helvetica Neue',Arial,sans-serif; }
+  .gauge-den { font-size:10px; fill:#667582; font-family:'Helvetica Neue',Arial,sans-serif; letter-spacing:.04em; }
+  .score-caption { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:#667582; margin-top:2px; }
+  .score-level { font-size:13.5px; color:#1F2730; font-weight:600; margin-top:3px; }
+
+  /* Student details as cards rather than one grey line — the client asked for
+     them "much bigger", and four labelled fields are easier to check at a
+     glance than a run-on sentence. */
+  .student-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+  .scard { display:flex; align-items:center; gap:10px; background:#F6FAFD; border:1px solid #E4EEF6; border-radius:8px; padding:9px 12px; }
+  .sicon { width:22px; height:22px; flex:0 0 22px; }
+  .slabel { display:block; font-size:10px; text-transform:uppercase; letter-spacing:.05em; color:#667582; }
+  .svalue { display:block; font-size:15px; font-weight:700; color:#0F2E42; line-height:1.25; }
 
   .section-title { font-size:17px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; margin:28px 0 10px; color:#0A6E9E; border-bottom:2px solid #DDE8F1; padding-bottom:5px; }
 
@@ -233,7 +293,9 @@ function renderReportHtml(report, meta = {}) {
   .criteria-table th, .criteria-table td,
   table.deductions th, table.deductions td,
   table.parts th, table.parts td { text-align:left; padding:5px 8px; border-bottom:1px solid #EDF3F8; vertical-align:top; }
-  .criteria-table th, table.deductions th, table.parts th { color:#667582; font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+  .criteria-table th, table.deductions th, table.parts th { color:#0A6E9E; font-size:11px; text-transform:uppercase; letter-spacing:.05em; background:#EDF6FC; border-bottom:1px solid #CFE6F5; }
+  table.parts td { font-size:13px; }
+  table.parts tbody tr:nth-child(even) td { background:#FAFCFE; }
   .crit-name { font-weight:600; }
   .crit-weight { color:#667582; }
   .crit-total td { font-size:11.5px; color:#46545F; background:#F6FAFD; font-weight:600; }
@@ -266,15 +328,29 @@ function renderReportHtml(report, meta = {}) {
 <body>
   <img class="page-mark" src="${LOGO_DATA_URI}" alt="">
 
-  <div class="header">
-    <div>
-      <img class="brand-logo" src="${LOGO_DATA_URI}" alt="Speak2Go">
-      <div class="doc-title">COBE - Spoken English Exam Test Report</div>
-      <div class="student-name">${esc(meta.studentName || "Student")}</div>
-      <div class="student-line">${esc([meta.className, meta.schoolName].filter(Boolean).join(" · "))}</div>
-      <div class="exam-line">${esc(meta.examLevel)}${meta.cefrLevel ? " · CEFR " + esc(meta.cefrLevel) : ""}${meta.dateExecuted ? " · " + esc(meta.dateExecuted) : ""}</div>
-    </div>
-    <div class="overall" style="color:${scoreColor(report.overallScore)}">${num(report.overallScore)}<span class="of">/100</span></div>
+  <div class="topbar">
+    <img class="brand-logo" src="${LOGO_DATA_URI}" alt="Speak2Go">
+    ${meta.dateExecuted ? `<span class="topbar-date">${esc(meta.dateExecuted)}</span>` : ""}
+  </div>
+
+  <div class="titleblock">
+    <div class="doc-title">COBE - Spoken English Exam Test Report</div>
+    ${meta.examName ? `<div class="exam-name">${esc(meta.examName)}</div>` : ""}
+    ${meta.examDescription ? `<div class="exam-desc">${esc(meta.examDescription)}</div>` : ""}
+  </div>
+
+  <div class="scoreblock">
+    ${scoreGauge(report.overallScore)}
+    <div class="score-caption">Final score</div>
+    <div class="score-level">${esc(meta.examLevel)}${meta.cefrLevel ? " · CEFR " + esc(meta.cefrLevel) : ""}</div>
+  </div>
+
+  <div class="section-title">Student</div>
+  <div class="student-grid">
+    ${studentCard("student", "Full name", meta.studentName)}
+    ${studentCard("class", "Class", meta.className)}
+    ${studentCard("school", "School", meta.schoolName)}
+    ${studentCard("id", "School ID (Semel Mosad)", meta.schoolId)}
   </div>
 
   <div class="section-title">Details</div>

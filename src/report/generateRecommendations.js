@@ -1,4 +1,5 @@
 const OpenAI = require("openai");
+const { questionNumber } = require("./questionNumber");
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 let client;
@@ -14,7 +15,11 @@ function getClient() {
  */
 async function generateRecommendations(examResult) {
   const summary = examResult.question_results.map((r) => ({
-    question_id: r.question_id,
+    // The number the teacher will see on the page ("1.1"), not our internal id
+    // and not the hash. The model quotes this back in its prose, so feeding it
+    // the raw id produces advice about "question 1a" printed next to a
+    // question headed Q1.1 — or, once ids are hashes, about "question f3c9a1".
+    question: questionNumber({ questionType: r.question_type, questionId: r.question_id }),
     final_question_score: r.final_question_score,
     fluency: r.audio_metrics?.fluencyLabel,
     weakest_criteria: (r.criterion_breakdown || [])

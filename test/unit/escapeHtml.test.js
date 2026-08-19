@@ -71,9 +71,20 @@ test("report HTML escapes hostile content from every untrusted field", () => {
   assert.equal(html.includes("<script>steal()</script>"), false);
   assert.equal(html.includes("</td></tr><script>"), false);
 
-  // No executable or fetching tag may appear at all.
-  const dangerous = html.match(/<(script|iframe|svg|object|embed)\b/gi) || [];
+  // No executable or fetching tag may appear at all. <svg> is NOT in this list
+  // any more, because the template now draws the score gauge and the student
+  // icons as inline SVG. It is replaced by the stricter check below.
+  const dangerous = html.match(/<(script|iframe|object|embed)\b/gi) || [];
   assert.deepEqual(dangerous, []);
+
+  // The reason <svg> was banned was `<svg onload=...>`. Ban the actual danger
+  // instead of the tag: no element anywhere may carry an inline event handler.
+  // The template emits none, and an injected one cannot survive esc().
+  const handlers = html.match(/<[a-z][^>]*\son[a-z]+\s*=/gi) || [];
+  assert.deepEqual(handlers, [], `inline event handler found: ${handlers.join(", ")}`);
+
+  // And the hostile svg from the fixture must appear as escaped text.
+  assert.equal(html.includes("&lt;svg onload=alert(1)&gt;"), true);
 
   // <img> IS emitted by the template now — the Speak2Go logo and the repeated
   // page mark. So rather than banning the tag, every img in the output must be

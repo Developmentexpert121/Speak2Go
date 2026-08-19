@@ -192,7 +192,7 @@ test("suppressed flags and unattempted questions are carried in camelCase", () =
   const report = buildReportObject(result, "");
 
   assert.deepEqual(report.unattemptedQuestions, [
-    { questionId: "4", description: "Part C (Q2)", pointsForfeited: 25 },
+    { questionId: "4", questionNumber: "4", description: "Part C (Q2)", pointsForfeited: 25 },
   ]);
   assert.equal(report.suppressedFlags[0].questionId, "1a");
   assert.equal(report.suppressedFlags[0].flag, "unintelligible");

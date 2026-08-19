@@ -32,6 +32,7 @@
  * rather than inventing a star count.
  */
 const { buildRecordingUrl } = require("./recordingUrl");
+const { questionNumber } = require("./questionNumber");
 
 const STAR_BY_SCORE = { 25: 1, 54: 2, 75: 3, 100: 4 };
 
@@ -85,6 +86,7 @@ function buildPartScores(examResult) {
         part: key,
         label: PART_ROW_LABELS[key] || `Part ${key}`,
         questionIds: [],
+        questionNumbers: [],
         pointsEarned: 0,
         pointsPossible: 0,
       };
@@ -94,6 +96,11 @@ function buildPartScores(examResult) {
     const row = byKey[key];
     const r = resultById[String(bp.question_id)];
     row.questionIds.push(bp.question_id);
+    // What the teacher sees in the Details table. questionIds is kept
+    // alongside because it is the key a consumer joins on.
+    row.questionNumbers.push(
+      questionNumber({ questionType: r?.question_type, questionId: bp.question_id })
+    );
 
     // On a choose-one part (Part A) the two questions share one 25-point
     // allocation and only the better answer scores, so the row takes the
@@ -131,6 +138,11 @@ function buildQuestionScore(r, reportId) {
 
   return {
     questionId: r.question_id,
+    // What a teacher sees: "1.1", not "1a" and not a hash. Client, 19 Aug 2026.
+    questionNumber: questionNumber({
+      questionType: r.question_type,
+      questionId: r.question_id,
+    }),
     // Speak2Go's semantic label ("a1", "b", "c2"), echoed back. Their schema
     // sheet carries it on the Question, and it is the only field that tells a
     // consumer which part a hashed questionId belongs to.
@@ -195,6 +207,10 @@ function buildReportObject(examResult, teacherRecommendations, { reportId = null
   const deductionsTable = examResult.question_results.flatMap((r) =>
     (r.deductions || []).map((d) => ({
       questionId: r.question_id,
+      questionNumber: questionNumber({
+        questionType: r.question_type,
+        questionId: r.question_id,
+      }),
       // `reason` is not in the client's schema sheet; it is kept because a
       // deductions table a teacher cannot explain to a student is not much use
       // in an appeal. Confirmation on adding it formally is still outstanding.
@@ -213,6 +229,7 @@ function buildReportObject(examResult, teacherRecommendations, { reportId = null
 
   const unattemptedQuestions = (examResult.unattempted_questions || []).map((u) => ({
     questionId: u.question_id,
+    questionNumber: questionNumber({ questionId: u.question_id }),
     description: u.description,
     pointsForfeited: u.points_forfeited,
   }));

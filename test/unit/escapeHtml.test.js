@@ -69,12 +69,24 @@ test("report HTML escapes hostile content from every untrusted field", () => {
   // that no unescaped tag opener precedes it.
   assert.equal(html.includes("<script>alert(1)</script>"), false);
   assert.equal(html.includes("<script>steal()</script>"), false);
-  assert.equal(html.includes("<img"), false);
   assert.equal(html.includes("</td></tr><script>"), false);
 
-  // The only tags in the output are the ones the template itself emits.
-  const injectedTags = html.match(/<(script|img|iframe|svg|object|embed)\b/gi) || [];
-  assert.deepEqual(injectedTags, []);
+  // No executable or fetching tag may appear at all.
+  const dangerous = html.match(/<(script|iframe|svg|object|embed)\b/gi) || [];
+  assert.deepEqual(dangerous, []);
+
+  // <img> IS emitted by the template now — the Speak2Go logo and the repeated
+  // page mark. So rather than banning the tag, every img in the output must be
+  // one of ours, which means an inline data URI. An injected <img src=x
+  // onerror=...> fails this because its src is not a data: URI.
+  const imgSrcs = [...html.matchAll(/<img\b[^>]*\bsrc="([^"]*)"/gi)].map((m) => m[1]);
+  assert.ok(imgSrcs.length >= 1, "the template should emit its own logo");
+  for (const src of imgSrcs) {
+    assert.match(src, /^data:image\/png;base64,/, `unexpected img src: ${src.slice(0, 40)}`);
+  }
+  // And no img tag survived without a quoted src at all.
+  const imgTags = html.match(/<img\b/gi) || [];
+  assert.equal(imgTags.length, imgSrcs.length, "an <img> appeared that this test did not account for");
 
   // ...while still displaying the text itself, escaped
   assert.equal(html.includes("&lt;script&gt;alert(1)&lt;/script&gt;"), true);

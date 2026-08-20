@@ -16,6 +16,18 @@
  * student's recording — an unrecoverable loss of the evidence behind a grade.
  */
 
+/**
+ * FILE EXTENSIONS IN THIS BUCKET LIE. Every recording is named ".mp3", but
+ * sampling the objects on 19 Aug 2026 showed the actual containers are WebM
+ * and Ogg — what a browser's MediaRecorder produces. Nothing here or in
+ * sttService.js branches on the extension: the raw bytes are handed to
+ * Deepgram, which sniffs the container itself, and a real recording was
+ * transcribed end to end at 0.999 confidence to confirm it.
+ *
+ * So do not "fix" the naming by deriving a mime type from the key, and do not
+ * add a decoder chosen by extension. Both would break every object in the
+ * bucket while looking like a tidy-up.
+ */
 const fs = require("fs");
 const os = require("os");
 const path = require("path");

@@ -146,10 +146,11 @@ function renderReportHtml(report, meta = {}) {
         <span>Deductions <strong class="ded-pct">${esc(q.deduction)}%</strong></span>
         ${dur ? `<span>Duration <strong>${esc(dur)}</strong></span>` : ""}
         ${
-          // "Speaking 118" rather than "118 wpm": the client's point was that a
-          // student reading their own report does not know what wpm means.
+          // "Speaking 118 [words per minute]". He first asked to drop "wpm" as
+          // jargon, then found the bare number unclear on paper — so the unit
+          // is spelled out in brackets rather than abbreviated or omitted.
           q.speechMetrics?.wordsPerMinute
-            ? `<span>Speaking <strong>${esc(q.speechMetrics.wordsPerMinute)}</strong></span>`
+            ? `<span>Speaking <strong>${esc(q.speechMetrics.wordsPerMinute)}</strong> <span class="unit">[words per minute]</span></span>`
             : ""
         }
       </div>
@@ -179,9 +180,10 @@ function renderReportHtml(report, meta = {}) {
                           )
                           .join("") +
                         `<tr class="crit-total">
-                           <td colspan="4">${esc(c.criterionName)} — criterion score</td>
+                           <td colspan="4">${esc(c.criterionName)}</td>
                            <td class="right" style="color:${scoreColor(c.criterionScore)}">${num(c.criterionScore)}</td>
-                         </tr>`
+                         </tr>
+                         <tr class="crit-gap"><td colspan="5"></td></tr>`
                       : `<tr>
                            <td class="crit-name">${esc(c.criterionName)}</td>
                            <td class="crit-weight">${num(c.weight * 100, 0)}%</td>
@@ -221,7 +223,7 @@ function renderReportHtml(report, meta = {}) {
     ? `
   <div class="section-title">Not Attempted</div>
   <table class="deductions">
-    <thead><tr><th>Question</th><th>Description</th><th class="right">Points forfeited</th></tr></thead>
+    <thead><tr><th>Question</th><th>Description</th><th class="right">Loss of points</th></tr></thead>
     <tbody>${unattempted
       .map(
         (u) => `
@@ -245,7 +247,8 @@ function renderReportHtml(report, meta = {}) {
   body { font-family: 'Helvetica Neue', Arial, sans-serif; color:#1F2730; margin:0; padding:32px 32px 48px; }
 
   .topbar { display:flex; justify-content:space-between; align-items:center; border-bottom:3px solid #17ADF2; padding-bottom:10px; }
-  .brand-logo { height:38px; display:block; }
+  /* 15% larger, at the client's request (24 Aug 2026). */
+  .brand-logo { height:44px; display:block; }
   .topbar-date { font-size:12px; color:#667582; }
 
   .titleblock { text-align:center; margin:18px 0 4px; }
@@ -275,8 +278,8 @@ function renderReportHtml(report, meta = {}) {
 
   .question-block { margin-bottom:18px; border:1px solid #DDE8F1; border-radius:8px; padding:14px 16px; page-break-inside:avoid; break-inside:avoid; }
   .question-head { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
-  .qid { font-weight:700; font-size:15px; color:#0A6E9E; background:#E9F6FE; border-radius:5px; padding:3px 10px; }
-  .qdesc { color:#46545F; font-size:13px; flex:1; font-weight:600; }
+  .qid { font-weight:700; font-size:17px; color:#0A6E9E; background:#E9F6FE; border-radius:5px; padding:3px 10px; }
+  .qdesc { color:#46545F; font-size:15px; flex:1; font-weight:600; }
   .qscore { font-weight:700; font-size:19px; }
   .not-counted { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:#667582; background:#F1F4F7; border-radius:4px; padding:2px 7px; white-space:nowrap; }
 
@@ -285,9 +288,11 @@ function renderReportHtml(report, meta = {}) {
   /* The transcript is the evidence behind the grade, so it is shown in full
      rather than truncated — a teacher fielding an appeal needs to read it. */
   .qtranscript { font-size:13px; line-height:1.55; background:#F6FAFD; border:1px solid #EDF3F8; border-radius:6px; padding:9px 11px; margin-bottom:8px; white-space:pre-line; }
-  .qaudio { font-size:11.5px; margin-bottom:9px; word-break:break-all; }
+  /* The score strip used to sit tight under the URL and read as part of it. */
+  .qaudio { font-size:11.5px; margin-bottom:18px; word-break:break-all; }
   .play { color:#0A6E9E; text-decoration:none; border-bottom:1px solid #9BD3F0; }
-  .qmeta { display:flex; gap:16px; font-size:12px; color:#46545F; margin-bottom:9px; flex-wrap:wrap; }
+  .qmeta { display:flex; gap:16px; font-size:12px; color:#46545F; margin:0 0 12px; flex-wrap:wrap; }
+  .unit { color:#667582; }
 
   .criteria-table, table.deductions, table.parts { width:100%; border-collapse:collapse; font-size:12.5px; }
   .criteria-table th, .criteria-table td,
@@ -298,7 +303,16 @@ function renderReportHtml(report, meta = {}) {
   table.parts tbody tr:nth-child(even) td { background:#FAFCFE; }
   .crit-name { font-weight:600; }
   .crit-weight { color:#667582; }
-  .crit-total td { font-size:11.5px; color:#46545F; background:#F6FAFD; font-weight:600; }
+  /* The criterion subtotal. Indented ~1cm, set larger than the sub-criteria
+     above it, and given a gap beneath so the four criteria read as four
+     distinct blocks rather than one continuous list — the client said it took
+     even him a moment to see what was going on here. */
+  .crit-total td { font-size:13.5px; color:#1F2730; background:#F6FAFD; font-weight:700; padding-top:7px; padding-bottom:7px; border-bottom:2px solid #E4EEF6; }
+  .crit-total td:first-child { padding-left:38px; }
+  .crit-total td.right { font-size:15px; }
+  /* Space between criterion groups. A margin cannot apply to a table row, so
+     the gap is drawn as a transparent spacer row instead. */
+  tr.crit-gap td { padding:0; height:12px; border:0; background:#fff; }
   .stars { color:#0A6E9E; letter-spacing:1px; }
   .right { text-align:right; }
   .mono { font-family:'SFMono-Regular',Consolas,monospace; font-size:11.5px; color:#667582; }
@@ -316,6 +330,10 @@ function renderReportHtml(report, meta = {}) {
   /* Repeated on every printed page. A fixed element is painted once per page
      by the print engine, which is the only way to get a running mark without
      a templating layer. */
+  /* Question Breakdown starts a fresh page: the client asked for the summary
+     and the per-question detail to be physically separate. */
+  .page-break { page-break-before:always; break-before:page; }
+
   .page-mark { display:none; }
   @media print {
     .page-mark { display:block; position:fixed; bottom:10px; right:14px; height:16px; opacity:.75; }
@@ -362,10 +380,10 @@ function renderReportHtml(report, meta = {}) {
   <div class="section-title">Teacher Recommendations</div>
   <div class="recommendations">${esc(report.teacherRecommendations) || "—"}</div>
 
-  <div class="section-title">Question Breakdown</div>
+  <div class="section-title page-break">Question Breakdown</div>
   ${questionBlocks}
 
-  <div class="section-title">Deductions</div>
+  <div class="section-title">Deductions Summary</div>
   <table class="deductions">
     <thead><tr><th>Question</th><th>Reason</th><th class="right">Deduction</th></tr></thead>
     <tbody>${deductionRows}</tbody>

@@ -141,16 +141,23 @@ function renderReportHtml(report, meta = {}) {
       }
 
       <div class="qmeta">
-        <span>Raw score <strong>${num(q.rawScore)}</strong></span>
-        <span>Final score <strong>${num(q.finalQuestionScore)}</strong></span>
-        <span>Deductions <strong class="ded-pct">${esc(q.deduction)}%</strong></span>
-        ${dur ? `<span>Duration <strong>${esc(dur)}</strong></span>` : ""}
         ${
-          // "Speaking 118 [words per minute]". He first asked to drop "wpm" as
-          // jargon, then found the bare number unclear on paper — so the unit
-          // is spelled out in brackets rather than abbreviated or omitted.
+          // Field order and wording set by the client (24 Aug 2026):
+          // "Score after deduction" sits immediately right of "Deductions", so
+          // the three numbers read as the sum they are — raw, what came off,
+          // what is left. Whole numbers only; a grade of "64.28" implies a
+          // precision the rubric's four bands do not have.
+          ""
+        }
+        <span>Raw Score: <strong>${num(q.rawScore, 0)}</strong></span>
+        <span>Deductions: <strong class="ded-pct">${esc(q.deduction)}%</strong></span>
+        <span>Score after deduction: <strong>${num(q.finalQuestionScore, 0)}</strong></span>
+        ${dur ? `<span>Duration: <strong>${esc(dur)}</strong></span>` : ""}
+        ${
+          // "Fluency", not "Speaking" — his wording. The unit stays spelled out
+          // in brackets because the bare number read as meaningless on paper.
           q.speechMetrics?.wordsPerMinute
-            ? `<span>Speaking <strong>${esc(q.speechMetrics.wordsPerMinute)}</strong> <span class="unit">[words per minute]</span></span>`
+            ? `<span>Fluency: <strong>${esc(q.speechMetrics.wordsPerMinute)}</strong> <span class="unit">[words per minute]</span></span>`
             : ""
         }
       </div>

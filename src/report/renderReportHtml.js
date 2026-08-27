@@ -340,6 +340,11 @@ function renderReportHtml(report, meta = {}) {
   /* Question Breakdown starts a fresh page: the client asked for the summary
      and the per-question detail to be physically separate. */
   .page-break { page-break-before:always; break-before:page; }
+  /* A heading must never be the last thing on a page, and these summary tables
+     are short enough to keep whole — the reviewed PDF stranded the "Not
+     Attempted" header on one page with its only row on the next. */
+  .section-title { page-break-after:avoid; break-after:avoid; }
+  table.deductions { page-break-inside:avoid; break-inside:avoid; }
 
   .page-mark { display:none; }
   @media print {
@@ -390,7 +395,7 @@ function renderReportHtml(report, meta = {}) {
   <div class="section-title page-break">Question Breakdown</div>
   ${questionBlocks}
 
-  <div class="section-title">Deductions Summary</div>
+  <div class="section-title page-break">Deductions Summary</div>
   <table class="deductions">
     <thead><tr><th>Question</th><th>Reason</th><th class="right">Deduction</th></tr></thead>
     <tbody>${deductionRows}</tbody>

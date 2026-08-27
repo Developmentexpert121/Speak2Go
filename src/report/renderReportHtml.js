@@ -187,7 +187,7 @@ function renderReportHtml(report, meta = {}) {
                           )
                           .join("") +
                         `<tr class="crit-total">
-                           <td colspan="4">${esc(c.criterionName)}</td>
+                           <td colspan="4" style="color:${scoreColor(c.criterionScore)}">${esc(c.criterionName)}</td>
                            <td class="right" style="color:${scoreColor(c.criterionScore)}">${num(c.criterionScore)}</td>
                          </tr>
                          <tr class="crit-gap"><td colspan="5"></td></tr>`
@@ -308,15 +308,15 @@ function renderReportHtml(report, meta = {}) {
   .criteria-table th, table.deductions th, table.parts th { color:#0A6E9E; font-size:11px; text-transform:uppercase; letter-spacing:.05em; background:#EDF6FC; border-bottom:1px solid #CFE6F5; }
   table.parts td { font-size:13px; }
   table.parts tbody tr:nth-child(even) td { background:#FAFCFE; }
-  .crit-name { font-weight:600; }
+  .crit-name { font-weight:600; font-size:13.5px; }
   .crit-weight { color:#667582; }
   /* The criterion subtotal. Indented ~1cm, set larger than the sub-criteria
      above it, and given a gap beneath so the four criteria read as four
      distinct blocks rather than one continuous list — the client said it took
      even him a moment to see what was going on here. */
-  .crit-total td { font-size:13.5px; color:#1F2730; background:#F6FAFD; font-weight:700; padding-top:7px; padding-bottom:7px; border-bottom:2px solid #E4EEF6; }
+  .crit-total td { font-size:12.5px; background:#F6FAFD; font-weight:700; padding-top:7px; padding-bottom:7px; border-bottom:2px solid #E4EEF6; }
   .crit-total td:first-child { padding-left:38px; }
-  .crit-total td.right { font-size:15px; }
+  .crit-total td.right { font-size:14px; }
   /* Space between criterion groups. A margin cannot apply to a table row, so
      the gap is drawn as a transparent spacer row instead. */
   tr.crit-gap td { padding:0; height:12px; border:0; background:#fff; }

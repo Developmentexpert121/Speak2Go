@@ -168,7 +168,13 @@ function buildQuestionScore(r, reportId) {
     audioFileKey: r.audio_file_key ?? null,
     // The playable link, pointing at Speak2Go's own app rather than at S3, so
     // it never expires and they authorise each playback. See recordingUrl.js.
-    recordingUrl: buildRecordingUrl({ reportId, questionId: r.question_id }),
+    recordingUrl: buildRecordingUrl({
+      reportId,
+      questionId: r.question_id,
+      // Speak2Go can send a tokenised playback URL on the question; when they
+      // do it is used as-is.
+      playbackUrl: r.audio_playback_url ?? null,
+    }),
     rawScore: r.raw_score,
     finalQuestionScore: r.final_question_score,
     // Named `deduction` to match the client's schema sheet. It is a

@@ -91,3 +91,23 @@ test("without a reportId the link is omitted rather than half-built", () => {
   );
   assert.equal(report.questions[0].recordingUrl, null);
 });
+
+test("a playback URL supplied by Speak2Go is used verbatim", () => {
+  // They mint the token, so rebuilding the link here would strip exactly the
+  // part that makes it work without a login.
+  const url = "https://app.speak2go.com/rec/play?t=eyJhbGciOi.signed.token";
+  assert.equal(
+    buildRecordingUrl({ reportId: "exam_x", questionId: "1a", playbackUrl: url }),
+    url
+  );
+});
+
+test("a non-http playback URL is rejected rather than placed in an href", () => {
+  // The value arrives on the inbound payload and ends up as a link target, so
+  // a "javascript:" URL here would be an XSS hole opened by the caller. Fall
+  // back to the constructed link instead of trusting it.
+  for (const hostile of ["javascript:alert(1)", "data:text/html,<script>", "  ", null]) {
+    const out = buildRecordingUrl({ reportId: "exam_x", questionId: "1a", playbackUrl: hostile });
+    assert.match(out, /^https:\/\/app\.speak2go\.com\//, `leaked: ${hostile}`);
+  }
+});

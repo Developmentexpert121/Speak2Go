@@ -211,6 +211,9 @@ app.post("/api/exams", upload.any(), (req, res) => {
         // recordings are sensitive, so we read them with GetObjectCommand the
         // same way their app does rather than passing links around.
         audioFileKey: supplied.audioFileKey || supplied.audio_file_key || null,
+        // Speak2Go mints the playback token, so if they send a finished URL we
+        // pass it straight through to the report rather than building our own.
+        audioPlaybackUrl: supplied.audioPlaybackUrl || supplied.audio_playback_url || null,
         // The transcript of the clip the student watched.
         //
         // The client confirmed on 13 Aug 2026 that this rides on the question

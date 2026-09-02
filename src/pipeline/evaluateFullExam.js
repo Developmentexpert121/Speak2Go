@@ -127,6 +127,9 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
         // private: we read it with GetObjectCommand the same way their own app
         // does. Carried through so the report can echo it.
         audio_file_key: q.audioFileKey ?? q.audio_file_key ?? null,
+        // A ready-made, tokenised playback link from Speak2Go, if they sent
+        // one. They mint the token; we only carry it to the report.
+        audio_playback_url: q.audioPlaybackUrl ?? q.audio_playback_url ?? null,
       };
 
       priorContext.push({

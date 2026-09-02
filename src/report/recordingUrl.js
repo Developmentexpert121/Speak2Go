@@ -15,6 +15,14 @@
  * authorises each playback itself.
  *
  * This module therefore builds a URL and nothing else. It never touches S3.
+ *
+ * WHO MINTS THE TOKEN. The link needs to work for a teacher who is not logged
+ * in, so it carries a token. Speak2Go mints that token, not us: they own the
+ * decision about who may hear a recording, they can revoke a link once issued,
+ * and it keeps the signing key in one place rather than copied into this
+ * service. When they supply a ready-made playback URL on the question we use
+ * it verbatim; the constructed form below is the fallback for questions that
+ * arrive without one.
  */
 
 /** Overridable so a staging deployment does not link into production. */
@@ -30,7 +38,14 @@ function appBaseUrl() {
  *   incomplete data renders without a link rather than with a broken one
  *   pointing at "undefined".
  */
-function buildRecordingUrl({ reportId, questionId }) {
+function buildRecordingUrl({ reportId, questionId, playbackUrl = null }) {
+  // A URL supplied by Speak2Go wins. It already carries their token, so
+  // rebuilding it here would strip exactly the part that makes it work.
+  // Only http(s) is accepted: the value ends up in an href, and a
+  // "javascript:" URL there would be an XSS hole opened by the payload.
+  const supplied = String(playbackUrl ?? "").trim();
+  if (supplied && /^https?:\/\//i.test(supplied)) return supplied;
+
   const r = String(reportId ?? "").trim();
   const q = String(questionId ?? "").trim();
   if (!r || !q) return null;

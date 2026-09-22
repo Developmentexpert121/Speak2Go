@@ -5,14 +5,16 @@
   "main": "src/pipeline/evaluateExam.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
+    "start": "node server.js",
+    "dev": "node --watch server.js",
     "test:stt": "node tests/run_stt.js",
     "test:pipeline": "node tests/run_pipeline.js",
     "test:full-exam": "node tests/run_full_exam.js",
     "test:report": "node tests/run_report_only.js",
     "test:dashboard": "node tests/run_dashboard.js",
-    "test:unit": "node --test tests/unit/*.test.js"
+    "test:unit": "node --test tests/unit/*.test.js",
+    "test:integration": "node --test tests/integration/*.test.js",
+    "test": "npm run test:unit && npm run test:integration"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1108.0",

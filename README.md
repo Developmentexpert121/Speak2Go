@@ -169,7 +169,7 @@ because moving it invalidates the signature.
 `JSON.stringify(req.body)` will reject any pretty-printed payload, because the
 whitespace is gone by then. In Express that means
 `express.json({ verify: (req, _res, buf) => { req.rawBody = buf } })`.
-`server/webhook.js` exports `verifyRequest()` ready to use on the receiving
+`src/integrations/resultCallbackClient.js` exports `verifyRequest()` ready to use on the receiving
 side, and there is a unit test pinning exactly this trap.
 
 Both `WEBHOOK_SIGNING_SECRET` and `WEBHOOK_ALLOWED_HOSTS` must be set. The
@@ -212,7 +212,7 @@ from S3 and printed without a server to resolve assets against.
 Run these in order. Neither costs a cent or needs an API key:
 
 ```bash
-npm run test:unit        # 54 tests, offline. All should pass.
+npm test                 # 123 unit + 9 integration, offline. All should pass.
 npm run test:dashboard   # writes test/sample_dashboard.html + .pdf
 ```
 
@@ -355,18 +355,33 @@ authorising the caller.
 
 ## Layout
 
+Follows Speak2Go's Node service conventions: routes do HTTP only, services
+hold the logic with no `req`/`res`, and data access sits behind named
+functions.
+
 ```
-server/      Express API, job store, exam runner, report store,
-             signed webhook delivery, S3 report upload
-public/      Operator dashboard (vanilla JS, no build step)
+server.js            starts the process
 src/
-  config/    Exam blueprint and the rubric JSON
-  services/  Deepgram STT, speech metrics, OpenAI rubric scoring
-  utils/     Score aggregation and the deterministic penalty rules
-  report/    Report object, HTML renderers, PDF via Puppeteer
-  storage/   File-backed persistence
-test/        Unit tests + manual harnesses
+  app.js             builds the Express app (no listen, so tests can mount it)
+  routes/            parse a request, call one service, send the response
+  services/          all logic: scoring, reports, spec objects, exam runs
+  validators/        request shape, turned into plain arguments or thrown
+  middleware/        central error handler, async wrapper
+  db/                job store, report store, reference material, file store
+  generators/        report HTML, report PDF, operator dashboard
+  integrations/      Deepgram, OpenAI, both S3 buckets, Speak2Go, callback
+  jobs/              the exam run, started by a service and polled for
+  config/            every environment variable, read in one place
+  utils/             rubric maths, penalty rules, escaping, pure helpers
+public/              Operator dashboard (vanilla JS, no build step)
+tests/unit/          123 tests, offline, nothing billable
+tests/integration/   9 tests, drive the real app over a socket
+docs/
 ```
+
+`db/` holds memory- and file-backed stores rather than a database. Phase 1 is
+evaluation only and the client asked for no database writes, so this is the
+data-access layer for a service that has no DB.
 
 ---
 

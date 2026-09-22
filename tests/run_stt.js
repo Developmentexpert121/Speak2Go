@@ -1,7 +1,7 @@
 require("dotenv").config();
 const path = require("path");
-const { transcribeAudioFile } = require("../src/services/sttService");
-const { computeAudioMetrics } = require("../src/services/audioMetrics");
+const { transcribeAudioFile } = require("../src/integrations/deepgramClient");
+const { computeAudioMetrics } = require("../src/utils/audioMetrics");
 
 async function main() {
   const audioPath = process.argv[2];

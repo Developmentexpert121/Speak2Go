@@ -39,13 +39,13 @@ const SILENT = { transcript: "", words: [], durationSeconds: 0, confidence: 0 };
 // quality, which is the only way to prove the BETTER one is the one kept.
 const AUDIO = { "strong.wav": SPOKEN, "weak.wav": SPOKEN, "empty.wav": SILENT };
 
-stub(path.join(SRC, "services", "sttService.js"), {
+stub(path.join(SRC, "integrations", "deepgramClient.js"), {
   transcribeAudioFile: async (p) => AUDIO[p],
 });
 
 // The rubric score is driven by the question text, which each test sets to
 // "strong" or "weak" — the stub has no other way to tell the answers apart.
-stub(path.join(SRC, "services", "llmScoring.js"), {
+stub(path.join(SRC, "integrations", "openaiClient.js"), {
   scoreQuestionAgainstRubric: async ({ questionText }) => {
     const level = String(questionText).includes("strong") ? 100 : 54;
     return {
@@ -55,8 +55,8 @@ stub(path.join(SRC, "services", "llmScoring.js"), {
   },
 });
 
-const { evaluateFullExam } = require(path.join(SRC, "pipeline", "evaluateFullExam.js"));
-const { buildPartScores } = require(path.join(__dirname, "..", "..", "src", "report", "buildReportObject.js"));
+const { evaluateFullExam } = require(path.join(SRC, "services", "examEvaluationService.js"));
+const { buildPartScores } = require(path.join(__dirname, "..", "..", "src", "services", "reportService.js"));
 
 const LEVEL = "5_UNITS_B2";
 

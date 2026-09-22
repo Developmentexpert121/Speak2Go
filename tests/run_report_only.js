@@ -1,9 +1,9 @@
 require("dotenv").config();
 const path = require("path");
-const { buildReportObject } = require("../src/report/buildReportObject");
-const { generateRecommendations } = require("../src/report/generateRecommendations");
-const { renderReportHtml } = require("../src/report/renderReportHtml");
-const { renderReportPdf } = require("../src/report/renderReportPdf");
+const { buildReportObject } = require("../src/services/reportService");
+const { generateRecommendations } = require("../src/services/recommendationService");
+const { renderReportHtml } = require("../src/generators/reportHtmlGenerator");
+const { renderReportPdf } = require("../src/generators/reportPdfGenerator");
 
 /**
  * A hand-built stand-in for evaluateFullExam()'s output. Use this to test

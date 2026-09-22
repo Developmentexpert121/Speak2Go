@@ -30,7 +30,7 @@ const path = require("path");
 const https = require("https");
 const http = require("http");
 
-const { computeTimeBasedDeduction } = require("../src/utils/timeBasedDeduction");
+const { computeTimeBasedDeduction } = require("../utils/timeBasedDeduction");
 
 const REFERENCE_FILE = path.join(__dirname, "..", "db_reference", "sample_recordings.json");
 

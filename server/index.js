@@ -7,13 +7,13 @@ const express = require("express");
 const multer = require("multer");
 
 const { getBlueprint, getExamTotalPoints } = require("../src/config/examBlueprint");
-const { DEFAULT_QUESTION_TEXTS, DEFAULT_PART_C_TRANSCRIPT } = require("./defaults");
-const { createJob, updateJob, getJob, listJobs } = require("./jobStore");
-const { runExam } = require("./examRunner");
-const { listByStudent, downloadRecording, canFetchRecordings, RECORDING_PATH } = require("./recordings");
-const { getReport } = require("./reportStore");
-const { buildStudentObject, buildExamObject, normalizeLevel, CEFR_BY_LEVEL, LEVEL_LABEL } = require("./specObjects");
-const { isConfigured: s3IsConfigured, BUCKET: S3_BUCKET, REGION: S3_REGION } = require("./s3ReportStorage");
+const { DEFAULT_QUESTION_TEXTS, DEFAULT_PART_C_TRANSCRIPT } = require("../src/config/defaults");
+const { createJob, updateJob, getJob, listJobs } = require("../src/db/jobRepository");
+const { runExam } = require("../src/jobs/examRunJob");
+const { listByStudent, downloadRecording, canFetchRecordings, RECORDING_PATH } = require("../src/integrations/speak2goClient");
+const { getReport } = require("../src/db/reportRepository");
+const { buildStudentObject, buildExamObject, normalizeLevel, CEFR_BY_LEVEL, LEVEL_LABEL } = require("../src/services/specObjectsService");
+const { isConfigured: s3IsConfigured, BUCKET: S3_BUCKET, REGION: S3_REGION } = require("../src/integrations/s3ReportStorageClient");
 
 const app = express();
 const PORT = process.env.PORT || 3000;

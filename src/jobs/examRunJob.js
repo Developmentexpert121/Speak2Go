@@ -14,15 +14,15 @@
 
 const fs = require("fs");
 
-const { evaluateFullExam } = require("../src/pipeline/evaluateFullExam");
-const { generateRecommendations } = require("../src/report/generateRecommendations");
-const { buildReportObject } = require("../src/report/buildReportObject");
-const { saveReferenceMaterial } = require("../src/storage/referenceMaterialStore");
-const { updateJob } = require("./jobStore");
-const { buildReports } = require("./reportStore");
-const { buildExamObject } = require("./specObjects");
-const { deliverResult } = require("./webhook");
-const { downloadRecordingByKey, isConfigured: s3RecordingsConfigured } = require("./s3Recordings");
+const { evaluateFullExam } = require("../services/examEvaluationService");
+const { generateRecommendations } = require("../services/recommendationService");
+const { buildReportObject } = require("../services/reportService");
+const { saveReferenceMaterial } = require("../db/referenceMaterialRepository");
+const { updateJob } = require("../db/jobRepository");
+const { buildReports } = require("../db/reportRepository");
+const { buildExamObject } = require("../services/specObjectsService");
+const { deliverResult } = require("../integrations/resultCallbackClient");
+const { downloadRecordingByKey, isConfigured: s3RecordingsConfigured } = require("../integrations/s3RecordingsClient");
 
 /**
  * @param {object} params

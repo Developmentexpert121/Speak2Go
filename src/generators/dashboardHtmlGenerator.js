@@ -1,4 +1,4 @@
-const { esc, num } = require("./escapeHtml");
+const { esc, num } = require("../utils/escapeHtml");
 const { getBlueprint } = require("../config/examBlueprint");
 
 /**

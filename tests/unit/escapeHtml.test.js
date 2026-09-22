@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { esc, num } = require("../../src/report/escapeHtml");
-const { renderReportHtml } = require("../../src/report/renderReportHtml");
+const { esc, num } = require("../../src/utils/escapeHtml");
+const { renderReportHtml } = require("../../src/generators/reportHtmlGenerator");
 
 test("esc neutralises the HTML metacharacters", () => {
   assert.equal(esc(`<script>`), "&lt;script&gt;");

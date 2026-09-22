@@ -1,4 +1,4 @@
-const { getReferenceMaterial } = require("../storage/referenceMaterialStore");
+const { getReferenceMaterial } = require("../db/referenceMaterialRepository");
 
 /**
  * The canonical shape of a COBE exam, and the adapter that recovers that shape

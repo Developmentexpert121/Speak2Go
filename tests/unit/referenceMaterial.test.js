@@ -33,7 +33,7 @@ function words(count, durationSeconds) {
   }));
 }
 
-stub(path.join(SRC, "services", "sttService.js"), {
+stub(path.join(SRC, "integrations", "deepgramClient.js"), {
   transcribeAudioFile: async () => ({
     transcript: "a ".repeat(150), words: words(150, 90), durationSeconds: 90, confidence: 0.95,
   }),
@@ -41,7 +41,7 @@ stub(path.join(SRC, "services", "sttService.js"), {
 
 /** Records what reference material each question's scoring call received. */
 const seen = [];
-stub(path.join(SRC, "services", "llmScoring.js"), {
+stub(path.join(SRC, "integrations", "openaiClient.js"), {
   scoreQuestionAgainstRubric: async ({ questionText, referenceMaterial }) => {
     seen.push({ questionText, referenceMaterial });
     return {
@@ -51,7 +51,7 @@ stub(path.join(SRC, "services", "llmScoring.js"), {
   },
 });
 
-const { evaluateFullExam } = require(path.join(SRC, "pipeline", "evaluateFullExam.js"));
+const { evaluateFullExam } = require(path.join(SRC, "services", "examEvaluationService.js"));
 
 const LEVEL = "5_UNITS_B2";
 

@@ -1,5 +1,5 @@
 const OpenAI = require("openai");
-const { questionNumber } = require("./questionNumber");
+const { questionNumber } = require("../utils/questionNumber");
 
 const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
 let client;

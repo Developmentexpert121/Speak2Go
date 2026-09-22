@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildStudentObject, buildExamObject, normalizeLevel } = require("../../server/specObjects");
+const { buildStudentObject, buildExamObject, normalizeLevel } = require("../../src/services/specObjectsService");
 
 /**
  * The Student and Exam objects are wire contracts: Speak2Go reads these keys

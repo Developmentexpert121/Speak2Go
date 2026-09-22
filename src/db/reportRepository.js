@@ -22,10 +22,10 @@ const fs = require("fs");
 const os = require("os");
 const path = require("path");
 
-const { renderReportHtml } = require("../src/report/renderReportHtml");
-const { renderDashboardHtml } = require("../src/report/renderDashboardHtml");
-const { renderReportPdf } = require("../src/report/renderReportPdf");
-const { uploadReport, isConfigured: s3IsConfigured } = require("./s3ReportStorage");
+const { renderReportHtml } = require("../generators/reportHtmlGenerator");
+const { renderDashboardHtml } = require("../generators/dashboardHtmlGenerator");
+const { renderReportPdf } = require("../generators/reportPdfGenerator");
+const { uploadReport, isConfigured: s3IsConfigured } = require("../integrations/s3ReportStorageClient");
 
 const OUT_DIR = path.join(os.tmpdir(), "s2g_reports");
 const MAX_REPORTS = 50;

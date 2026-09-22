@@ -1,4 +1,4 @@
-const { evaluateQuestion } = require("./evaluateExam");
+const { evaluateQuestion } = require("./questionEvaluationService");
 const { groupQuestions, isTimeBasedDeductionQuestion } = require("../utils/questionMeta");
 const { computeGroupCoverageDeduction, applyCoverageDeductionToQuestion } = require("../utils/coverageDeduction");
 const { computeTimeBasedDeduction } = require("../utils/timeBasedDeduction");

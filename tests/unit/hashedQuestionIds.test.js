@@ -39,10 +39,10 @@ const LONG = { transcript: "a ".repeat(150), words: words(150, 90), durationSeco
 // pass whether or not Part B was recognised at all.
 const MEDIUM = { transcript: "a ".repeat(80), words: words(80, 45), durationSeconds: 45, confidence: 0.95 };
 
-stub(path.join(SRC, "services", "sttService.js"), {
+stub(path.join(SRC, "integrations", "deepgramClient.js"), {
   transcribeAudioFile: async (p) => (p === "medium.wav" ? MEDIUM : LONG),
 });
-stub(path.join(SRC, "services", "llmScoring.js"), {
+stub(path.join(SRC, "integrations", "openaiClient.js"), {
   scoreQuestionAgainstRubric: async ({ questionText }) => ({
     subCriteriaScores: ALL_SUB_CRITERIA.map((id) => ({
       id,
@@ -53,7 +53,7 @@ stub(path.join(SRC, "services", "llmScoring.js"), {
   }),
 });
 
-const { evaluateFullExam } = require(path.join(SRC, "pipeline", "evaluateFullExam.js"));
+const { evaluateFullExam } = require(path.join(SRC, "services", "examEvaluationService.js"));
 
 const LEVEL = "5_UNITS_B2";
 

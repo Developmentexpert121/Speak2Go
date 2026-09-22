@@ -1,7 +1,7 @@
 const rubrics = require("../config/rubrics.json");
-const { transcribeAudioFile } = require("../services/sttService");
-const { computeAudioMetrics } = require("../services/audioMetrics");
-const { scoreQuestionAgainstRubric } = require("../services/llmScoring");
+const { transcribeAudioFile } = require("../integrations/deepgramClient");
+const { computeAudioMetrics } = require("../utils/audioMetrics");
+const { scoreQuestionAgainstRubric } = require("../integrations/openaiClient");
 const { aggregateQuestionScore } = require("../utils/aggregateScores");
 const { applyPenalties } = require("../utils/applyPenalties");
 

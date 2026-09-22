@@ -1,11 +1,11 @@
 require("dotenv").config();
 const path = require("path");
-const { evaluateFullExam } = require("../src/pipeline/evaluateFullExam");
-const { buildReportObject } = require("../src/report/buildReportObject");
-const { generateRecommendations } = require("../src/report/generateRecommendations");
-const { renderReportHtml } = require("../src/report/renderReportHtml");
-const { renderReportPdf } = require("../src/report/renderReportPdf");
-const { saveReferenceMaterial } = require("../src/storage/referenceMaterialStore");
+const { evaluateFullExam } = require("../src/services/examEvaluationService");
+const { buildReportObject } = require("../src/services/reportService");
+const { generateRecommendations } = require("../src/services/recommendationService");
+const { renderReportHtml } = require("../src/generators/reportHtmlGenerator");
+const { renderReportPdf } = require("../src/generators/reportPdfGenerator");
+const { saveReferenceMaterial } = require("../src/db/referenceMaterialRepository");
 
 const { COBE_BLUEPRINT } = require("../src/config/examBlueprint");
 

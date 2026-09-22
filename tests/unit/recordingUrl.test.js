@@ -1,8 +1,8 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { buildRecordingUrl } = require("../../src/report/recordingUrl");
-const { buildReportObject } = require("../../src/report/buildReportObject");
+const { buildRecordingUrl } = require("../../src/utils/recordingUrl");
+const { buildReportObject } = require("../../src/services/reportService");
 
 /**
  * The client specified this link format on 13 Aug 2026 and ruled out the two

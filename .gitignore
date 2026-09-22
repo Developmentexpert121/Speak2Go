@@ -11,13 +11,13 @@ data/
 # Output of test/run_client_sample.js. The client's sample recordings are named
 # by student e-mail whose local part is the national ID, so this file carries
 # real student identifiers next to their transcripts and grades.
-test/client_sample_results*.json
+tests/client_sample_results*.json
 
 # Generated report artefacts
-test/sample_report.html
-test/sample_report.pdf
-test/sample_dashboard.html
-test/sample_dashboard.pdf
+tests/sample_report.html
+tests/sample_report.pdf
+tests/sample_dashboard.html
+tests/sample_dashboard.pdf
 
 # Reference data pulled from the client database
 db_reference/
@@ -27,5 +27,5 @@ sample_audio/
 *.log
 
 # Real-audio report: contains a real student's transcript. Never commit.
-test/real_report.html
-test/real_report.pdf
+tests/real_report.html
+tests/real_report.pdf

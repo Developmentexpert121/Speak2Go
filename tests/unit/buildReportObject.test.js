@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
-const { buildReportObject, buildPartScores, starsFor } = require("../../src/report/buildReportObject");
+const { buildReportObject, buildPartScores, starsFor } = require("../../src/services/reportService");
 
 /**
  * A minimal but structurally complete exam result, shaped exactly as

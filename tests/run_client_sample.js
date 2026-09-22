@@ -25,11 +25,11 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
-const { evaluateFullExam } = require("../src/pipeline/evaluateFullExam");
-const { buildReportObject } = require("../src/report/buildReportObject");
-const { generateRecommendations } = require("../src/report/generateRecommendations");
+const { evaluateFullExam } = require("../src/services/examEvaluationService");
+const { buildReportObject } = require("../src/services/reportService");
+const { generateRecommendations } = require("../src/services/recommendationService");
 const { COBE_BLUEPRINT } = require("../src/config/examBlueprint");
-const { DEFAULT_QUESTION_TEXTS, DEFAULT_PART_C_TRANSCRIPT } = require("../server/defaults");
+const { DEFAULT_QUESTION_TEXTS, DEFAULT_PART_C_TRANSCRIPT } = require("../src/config/defaults");
 
 const SAMPLE_DIR =
   process.env.SAMPLE_DIR ||

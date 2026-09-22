@@ -1,5 +1,5 @@
-const { esc, num } = require("./escapeHtml");
-const { LOGO_DATA_URI, FAVICON_DATA_URI } = require("./assets");
+const { esc, num } = require("../utils/escapeHtml");
+const { LOGO_DATA_URI, FAVICON_DATA_URI } = require("./brandAssets");
 
 /**
  * Renders a Report Object into the HTML the spec calls for (section 2,

@@ -31,8 +31,8 @@
  * Anything unexpected returns null so the renderer shows the number alone
  * rather than inventing a star count.
  */
-const { buildRecordingUrl } = require("./recordingUrl");
-const { questionNumber } = require("./questionNumber");
+const { buildRecordingUrl } = require("../utils/recordingUrl");
+const { questionNumber } = require("../utils/questionNumber");
 
 const STAR_BY_SCORE = { 25: 1, 54: 2, 75: 3, 100: 4 };
 

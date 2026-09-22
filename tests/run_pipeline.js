@@ -1,5 +1,5 @@
 require("dotenv").config();
-const { evaluateQuestion } = require("../src/pipeline/evaluateExam");
+const { evaluateQuestion } = require("../src/services/questionEvaluationService");
 
 async function main() {
   const audioPath = process.argv[2];

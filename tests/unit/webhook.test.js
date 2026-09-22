@@ -10,7 +10,7 @@ const {
   SIGNATURE_HEADER,
   TIMESTAMP_HEADER,
   DELIVERY_HEADER,
-} = require("../../server/webhook");
+} = require("../../src/integrations/resultCallbackClient");
 
 const SECRET = "test_secret_do_not_use_in_production";
 
@@ -249,7 +249,7 @@ test("only 429 and 5xx are retried", () => {
 });
 
 test("deliverResult signs what it sends and reports success", async () => {
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   await withEnv(
     { WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net", WEBHOOK_SIGNING_SECRET: SECRET },
@@ -287,7 +287,7 @@ test("deliverResult signs what it sends and reports success", async () => {
 });
 
 test("deliverResult refuses to send unsigned when no secret is set", async () => {
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   await withEnv(
     { WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net", WEBHOOK_SIGNING_SECRET: undefined },
@@ -311,7 +311,7 @@ test("deliverResult refuses to send unsigned when no secret is set", async () =>
 });
 
 test("deliverResult does not retry a 4xx", async () => {
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   await withEnv(
     { WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net", WEBHOOK_SIGNING_SECRET: SECRET },
@@ -335,7 +335,7 @@ test("deliverResult does not retry a 4xx", async () => {
 });
 
 test("a 5xx is retried three times by default — four requests in total", async () => {
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   await withEnv(
     {
@@ -364,7 +364,7 @@ test("a 5xx is retried three times by default — four requests in total", async
 });
 
 test("the retry count is configurable", async () => {
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   for (const [configured, expectedCalls] of [
     ["0", 1],
@@ -397,7 +397,7 @@ test("the retry count is configurable", async () => {
 });
 
 test("a garbled retry count falls back to the default rather than disabling retries", () => {
-  const { maxRetries, DEFAULT_MAX_RETRIES } = require("../../server/webhook");
+  const { maxRetries, DEFAULT_MAX_RETRIES } = require("../../src/integrations/resultCallbackClient");
 
   withEnv({ WEBHOOK_MAX_RETRIES: "not a number" }, () => {
     assert.equal(maxRetries(), DEFAULT_MAX_RETRIES);
@@ -416,7 +416,7 @@ test("a retry is re-signed, so a delivery delayed past the window still verifies
   // Each attempt gets a fresh timestamp and signature. Without that, a retry
   // 60s later would carry the original timestamp and the receiver would reject
   // it as stale — the retries would be guaranteed to fail.
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   await withEnv(
     { WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net", WEBHOOK_SIGNING_SECRET: SECRET, WEBHOOK_MAX_RETRIES: "1" },
@@ -451,7 +451,7 @@ test("a retry is re-signed, so a delivery delayed past the window still verifies
 });
 
 test("a blocked callbackUrl never reaches the network", async () => {
-  const { deliverResult } = require("../../server/webhook");
+  const { deliverResult } = require("../../src/integrations/resultCallbackClient");
 
   await withEnv(
     { WEBHOOK_ALLOWED_HOSTS: "api.speak2go.net", WEBHOOK_SIGNING_SECRET: SECRET },

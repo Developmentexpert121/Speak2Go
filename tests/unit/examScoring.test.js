@@ -28,17 +28,17 @@ const AUDIO = {
   "empty.wav": { transcript: "", words: [], durationSeconds: 0, confidence: 0 },
 };
 
-stub(path.join(SRC, "services", "sttService.js"), {
+stub(path.join(SRC, "integrations", "deepgramClient.js"), {
   transcribeAudioFile: async (p) => AUDIO[p],
 });
-stub(path.join(SRC, "services", "llmScoring.js"), {
+stub(path.join(SRC, "integrations", "openaiClient.js"), {
   scoreQuestionAgainstRubric: async () => ({
     subCriteriaScores: ALL_SUB_CRITERIA.map((id) => ({ id, selected_level: 100, justification: "stub" })),
     contentFlags: { foul_language: false, non_english: false, unintelligible: false, flag_reasoning: "" },
   }),
 });
 
-const { evaluateFullExam } = require(path.join(SRC, "pipeline", "evaluateFullExam.js"));
+const { evaluateFullExam } = require(path.join(SRC, "services", "examEvaluationService.js"));
 const {
   getExamTotalPoints,
   mapLessonToExamQuestions,

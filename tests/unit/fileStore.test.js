@@ -2,7 +2,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("fs");
 const path = require("path");
-const { saveExamResult, getExamResult, listExams } = require("../../src/storage/fileStore");
+const { saveExamResult, getExamResult, listExams } = require("../../src/db/fileStore");
 
 const TEST_EXAM_ID = "test-exam-unit-" + Date.now();
 

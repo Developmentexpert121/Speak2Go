@@ -1,27 +1,10 @@
 /**
- * Builds the Report Object — the single payload Speak2Go receives back for a
- * graded exam, and the thing the webhook POSTs.
+ * Builds the Report Object — the payload Speak2Go receives for a graded exam.
  *
- * ON CASING. The spec doc writes every field in snake_case. The client asked
- * on 12 Aug 2026 for camelCase on the wire, so this module is the one place
- * that translates: everything upstream of here (the scoring engine, the
- * rubric config, the penalty rules) keeps its original snake_case internals,
- * and nothing downstream of here ever sees them.
- *
- * Doing the rename at this boundary rather than across the engine was
- * deliberate. A blanket find-replace would also have caught three families of
- * identifier that only LOOK like snake_case fields and must not move:
- *   - rubric sub-criterion ids (`sc1_relevancy`, `sc8_correct_grammar`),
- *     which are matched by string against rubrics.json and the LLM's reply;
- *   - level codes (`5_UNITS_B2`);
- *   - Speak2Go's own Mongo columns (`IDNumber`, `SemelMosad`), which are
- *     inputs, not outputs.
- * Listing the output keys by hand costs a few lines and makes it impossible
- * to rename one of those by accident.
- *
- * @param {object} examResult - output of evaluateFullExam()
- * @param {string} teacherRecommendations - generated separately (see
- *   generateRecommendations.js), passed in here to keep this function pure
+ * Output keys are camelCase and this is one of only two places that translate
+ * from the engine's snake_case. Rubric sub-criterion ids, level codes and
+ * Speak2Go's Mongo columns must keep their spelling; see
+ * docs/scoring-rules.md ("Casing").
  */
 
 /**
@@ -41,18 +24,12 @@ function starsFor(score) {
 }
 
 /**
- * The doc's "Details" summary table: four rows, each out of 25.
+ * The Details table: four rows of 25. Parts A and B collapse to one row each;
+ * Part C's two questions get a row apiece.
  *
- * The rows are not simply the exam's three parts. Parts A and B each collapse
- * to one row however many questions they contain (Part A is always 1a+1b at
- * 12.5 each, and Part B is one question in 2019-2022 lessons but two in the
- * 2023 ones). Part C is the opposite — its two questions are reported
- * SEPARATELY, as C1 "Video Comprehension" and C2 "Personal Opinion", because
- * they test different things and the doc gives them their own rows.
- *
- * Built from the exam layout rather than from the submitted questions, so a
- * part the student skipped still appears with 0 earned instead of vanishing
- * and making the table silently add up to less than 100.
+ * Built from the exam layout, not the submitted questions, so a skipped part
+ * still shows 0 / 25 rather than vanishing and leaving a table that adds up
+ * to less than 100.
  */
 const PART_ROW_LABELS = {
   A: "Part A - Personal Response",

@@ -3,16 +3,9 @@ const { AppError } = require("../utils/AppError");
 /**
  * The single place an error becomes a response.
  *
- * Routes and services throw; nothing below this line catches to build a reply.
- * The style guide asks for exactly this, and it also removes a class of bug
- * the previous per-route try/catch had: each route chose its own status code
- * and message shape, so the same failure could surface as a 400 from one
- * endpoint and a 500 from another.
- *
- * An AppError is something we predicted, so its message is safe to send back.
- * Anything else is a bug: it is logged in full here and reported to the caller
- * as a generic 500, because an unexpected stack can carry file paths, keys or
- * a student's data and none of that belongs in an HTTP response.
+ * An AppError was predicted, so its message is safe to return. Anything else
+ * is a bug: logged in full, reported as a bare 500, because a stack can carry
+ * file paths, keys or a student's data. See docs/architecture.md.
  */
 function errorHandler(err, req, res, _next) {
   const isKnown = err instanceof AppError;

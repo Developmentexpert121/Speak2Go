@@ -2,20 +2,10 @@ const fs = require("fs");
 const path = require("path");
 
 /**
- * Persistence layer for Part C reference-material transcripts.
+ * Part C clip transcripts on disk, keyed by clip id.
  *
- * Deliberately shaped as save / get so that once a real DB
- * is available, only this file needs to be swapped — all callers remain
- * unchanged.
- *
- * Key: the lesson clip's ID_detection value (a string, typically the platform's
- * video/detection ID).  This is intentionally NOT keyed by topic name, because
- * two different lessons can share the same topic ("Books") while having
- * completely different clips, and two different Part C clips can appear inside
- * the same lesson.  Using the actual clip ID is the only collision-free key.
- *
- * Storage layout: data/reference_material/<sanitised-id>.json
- * Each file holds: { idDetection, savedAt, transcript }
+ * Shaped as save / get so that swapping in a real database later touches only
+ * this file. Ids are sanitised so one cannot escape the directory via "../".
  */
 const STORE_DIR = path.join(__dirname, "..", "..", "data", "reference_material");
 

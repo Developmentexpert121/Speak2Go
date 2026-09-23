@@ -1,27 +1,9 @@
 /**
- * Student recording retrieval.
+ * Pulls student recordings from the Speak2Go platform.
  *
- * Replaces the earlier s3.js, which fetched `s3Url` directly over plain HTTPS.
- * That approach cannot work, and not because credentials are missing — it is
- * the wrong door. Reading the live app source settled it:
- *
- *   - Recordings are NOT in their own collection. They are embedded in the
- *     student document as `users.freeSpeechArray[]`, upserted by
- *     `services/usersDb.js:updateFreeSpeech()` keyed on `idDetection`.
- *
- *   - The bucket (`s2g-recordings`) is private. The only read path is
- *     `GET /api/v1/upload/getRecording?userEmail=&idDetection=`
- *     (routes/upload.js:274), which authenticates the caller, authorizes
- *     against `SemelMosad`, looks up the freeSpeechArray entry to recover the
- *     real S3 `key`, and streams the object back as audio/mp3.
- *
- * So the unit of retrieval is (userEmail, idDetection) — never a URL. That
- * also means access is per-school: a teacher token only reaches students whose
- * SemelMosad matches. Handing us a bucket key would bypass that check, so the
- * endpoint is the correct integration point regardless.
- *
- * Until the client issues a service token, listing works (from their exported
- * sample) and fetching returns a precise 502 naming what is missing.
+ * Addressed by (userEmail, idDetection) rather than by URL: the bucket is
+ * private and the app resolves the key itself after authorising the caller.
+ * The token needs an admin or account-manager role to read across schools.
  */
 
 const config = require("../config");

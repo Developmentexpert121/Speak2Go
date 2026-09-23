@@ -1,31 +1,10 @@
 /**
- * Publishes finished report HTML to the Speak2Go S3 bucket, so that the Exam
- * Object's reportHtmlUrl points at durable storage rather than at this
- * process's memory.
+ * Uploads a rendered report to the client's bucket and returns a link to it.
  *
- * The client asked (11 Aug 2026) for the HTML to be saved to their bucket and
- * the URL returned, and for PDFs NOT to be pre-rendered — Avinoam generates
- * those on demand from the HTML. That works because renderReportHtml emits a
- * fully self-contained document: no external stylesheets, fonts, images or
- * scripts. It can be fetched straight out of the bucket and printed.
- *
- * THE BUCKET. The client's message named "oral-exam-s2g" in prose and
- * "arn:aws:s3:::oral-exams-s2g" in the ARN. Those are different names, and
- * only the plural one exists — an unauthenticated probe returns 403 (exists,
- * access denied) for oral-exams-s2g and 404 for the singular spelling. The ARN
- * is therefore the correct one, in us-east-1. Both are overridable by env so a
- * correction does not need a code change.
- *
- * ACCESS. Credentials are read from the environment by the AWS SDK's default
- * provider chain (env vars, shared config file, or an instance role). Nothing
- * is hardcoded here. The console username and password the client sent cannot
- * be used by this code at all — console sign-in and API access are different
- * mechanisms; this needs an access key pair or, better, a role.
- *
- * PRIVACY. Reports carry a student's full name, school, class and grades, so
- * objects are written with no public-read ACL and handed out as presigned URLs
- * that expire. If Speak2Go would rather serve them itself, set
- * S3_PUBLIC_BASE_URL and we return a plain path instead.
+ * Objects are private and server-side encrypted, so the link is presigned
+ * unless S3_PUBLIC_BASE_URL says the bucket is fronted by CloudFront. Without
+ * credentials the caller falls back to serving from memory rather than failing
+ * a graded exam. See docs/integrations.md.
  */
 
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
@@ -48,13 +27,8 @@ function getClient() {
 }
 
 /**
- * Whether uploading is configured. Checked before use so the pipeline can fall
- * back to serving reports from memory instead of failing an otherwise
- * successful exam run.
- *
- * Deliberately does not verify the credentials are VALID — that would mean a
- * network round trip on every health check. It reports only whether anything
- * was supplied at all.
+ * Whether anything was supplied, not whether it is valid — validating would
+ * mean a network round trip on every health check.
  */
 function isConfigured() {
   return config.aws.hasCredentials;

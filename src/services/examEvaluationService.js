@@ -12,12 +12,12 @@ const {
 const { partFromQuestionType } = require("../utils/questionType");
 
 /**
- * The choice group a question belongs to, or null. Read from the layout when
- * one was supplied, otherwise from the blueprint for the level.
+ * Evaluates a whole exam, so cross-question rules can be applied: the
+ * coverage chart, the Part B time bands, and Part A's choose-one scoring.
  *
- * Part A is the only one today: the student is shown two questions and answers
- * one, so the two share a single 25-point allocation rather than holding 12.5
- * each. See CHOICE_PARTS in examBlueprint.js.
+ * `weight` is an absolute point value and the exam is always marked out of
+ * the blueprint total, never out of whatever was submitted.
+ * See docs/scoring-rules.md.
  */
 function choiceGroupFor(question, level, examLayout) {
   // questionType first, for the same reason as everywhere else: against a
@@ -37,27 +37,15 @@ function choiceGroupFor(question, level, examLayout) {
 }
 
 /**
- * Evaluates an entire exam as a unit, so that cross-question rules — the
- * 1a/1b coverage chart and the Part B time-based deduction — can be applied
- * correctly.
- *
- * SCORING MODEL: `weight` is an absolute point value, and the exam is always
- * marked out of the blueprint total (100), never out of "whatever was
- * submitted". A question the student didn't attempt contributes 0 points
- * rather than being dropped from the denominator.
+ * Evaluates a whole exam so cross-question rules can apply.
  *
  * @param {object} params
- * @param {Array} params.questions - [{ question_id, description, part,
- *   question_text, weight, audioFilePath }, ...]
+ * @param {Array} params.questions - [{ question_id, part, question_text,
+ *   weight, audioFilePath }, ...]
  * @param {"5_UNITS_B2"|"4_UNITS_B1"} params.level
- * @param {number} [params.examTotalPoints] - override the blueprint total;
- *   only for partial/practice exams that are genuinely marked out of less
- * @param {Array} [params.examLayout] - the full slot list this exam should
- *   have had, as returned by examBlueprint.inspectLesson().layout. Needed to
- *   report unattempted questions correctly, because Part B is one question in
- *   the 2019-2022 lessons and two in the 2023 ones — the default blueprint
- *   would otherwise report "2" as unattempted on a 2023 exam where the
- *   student answered 2a and 2b.
+ * @param {number} [params.examTotalPoints] - override the blueprint total
+ * @param {Array} [params.examLayout] - the slot list this exam should have
+ *   had; needed to report unattempted questions on a 2023 split-Part-B exam
  */
 async function evaluateFullExam({ questions, level, examTotalPoints, examLayout, onProgress }) {
   assertWeightsAreUsable(questions, level);
@@ -154,12 +142,9 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
     const groupList = groups[groupId].map((q) => resultsByQuestionId[q.question_id]);
     if (groupList.length <= 1) continue;
 
-    // A choose-one part is exempt. The coverage rule exists for sets where
-    // every sub-question is required; on Part A the student is told to answer
-    // one of two, so answering one is compliance. Deducting for it would
-    // penalise the student for following the instructions — and because the
-    // deduction lands on Topic Development, which is half the grade, it is
-    // easily the largest silent scoring error in this file.
+    // A choose-one part is exempt: answering one of two is compliance, not
+    // partial coverage. This deduction lands on Topic Development — half the
+    // grade — so firing it here is the largest silent scoring error possible.
     if (groupList.some((r) => choiceGroupFor(r, level, examLayout))) continue;
 
     const { deductionPct, answeredCount, totalCount } = computeGroupCoverageDeduction(groupList);
@@ -213,10 +198,8 @@ async function evaluateFullExam({ questions, level, examTotalPoints, examLayout,
   // Points for one answer, if it is the one that counts.
   const pointsFor = (r) => (r.final_question_score / 100) * r.weight;
 
-  // On a choose-one part only the BEST answer scores. Both are still returned
-  // and still carry a full breakdown — the client asked for feedback on both —
-  // but the loser contributes nothing to the grade, so they are marked rather
-  // than quietly added in. Ties keep the first, which is arbitrary but stable.
+  // Only the best answer in a choose-one group scores. Both are returned with
+  // a full breakdown; the other is marked rather than quietly added in.
   const bestByChoiceGroup = {};
   for (const r of allResults) {
     const group = choiceGroupFor(r, level, examLayout);

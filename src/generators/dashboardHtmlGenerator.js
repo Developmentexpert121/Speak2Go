@@ -2,17 +2,8 @@ const { esc, num } = require("../utils/escapeHtml");
 const { getBlueprint } = require("../config/examBlueprint");
 
 /**
- * Renders the full analytical dashboard: exam result + report object in, a
- * single self-contained HTML document out.
- *
- * Self-contained on purpose — no CDN fonts, no external CSS, no JS
- * dependencies. That means it can be dropped into an iframe in the Speak2Go
- * UI, emailed as a file, or handed straight to Puppeteer for the PDF, with
- * identical output in all three.
- *
- * @param {object} examResult - output of evaluateFullExam()
- * @param {object} report     - output of buildReportObject()
- * @param {object} meta       - { studentName, examLevel, dateExecuted, examId }
+ * The operator-facing dashboard: the formal report plus the pipeline detail
+ * an operator needs to diagnose a grade. Self-contained, like the report.
  */
 function renderDashboardHtml(examResult, report, meta = {}) {
   const results = examResult.question_results || [];

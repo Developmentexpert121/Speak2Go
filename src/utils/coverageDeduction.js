@@ -1,20 +1,9 @@
 /**
- * Spec rule (section 4.C, "Responses only to part of the questions asked in
- * the set"):
- *   All sub-questions answered  -> 0% deduction   (100% credit)
- *   Only one sub-question missing -> 25% deduction (75% credit)
- *   Only one sub-question answered -> 50% deduction (50% credit)
+ * The partial-answer deduction (spec 4.C): a question set where some
+ * sub-questions went unanswered loses Topic Development marks only, not the
+ * whole question score.
  *
- * Deduction applies to Topic Development ONLY, not the whole question score.
- *
- * ASSUMPTION (flag to client): the table as written has exactly 3 named
- * rows, which maps cleanly onto 2-part sets (1a/1b). For sets with 3+
- * sub-questions the "missing one" vs "answered one" rows can diverge from
- * "missing two" etc. — this implementation extrapolates linearly; confirm
- * with the client if any question set actually has more than 2 parts.
- *
- * @param {Array} groupQuestions - the evaluated results for every question
- *   in one group, each with { question_id, audio_metrics: { isEffectivelyEmpty } }
+ * Does not apply to choose-one parts — see docs/scoring-rules.md.
  */
 function computeGroupCoverageDeduction(groupQuestions) {
   const total = groupQuestions.length;

@@ -1,28 +1,10 @@
 /**
- * Builds the link a report uses to play back a student's recording.
+ * The playback link a report uses. Points at Speak2Go's app, never at S3:
+ * a presigned link expires and a public bucket would expose recordings whose
+ * keys contain students' ID numbers. Speak2Go mints the token, so a supplied
+ * URL wins over the constructed one. See docs/integrations.md.
  *
- * The client specified this format on 13 Aug 2026:
- *
- *   https://app.speak2go.com/#/recordings/play?r=<reportId>&q=<questionId>
- *
- * WHY NOT A DIRECT S3 LINK. We already have the ability to mint presigned URLs
- * to the recordings bucket, and it would be less code. The client explicitly
- * ruled it out: they do not want time-limited links, and they do not want the
- * recordings bucket public. A report is a document that may be opened months
- * later — a presigned URL inside it is a dead link by then, and the only
- * alternative would be making the bucket readable to anyone with the object
- * path. Pointing at their own app means the link never expires and Speak2Go
- * authorises each playback itself.
- *
- * This module therefore builds a URL and nothing else. It never touches S3.
- *
- * WHO MINTS THE TOKEN. The link needs to work for a teacher who is not logged
- * in, so it carries a token. Speak2Go mints that token, not us: they own the
- * decision about who may hear a recording, they can revoke a link once issued,
- * and it keeps the signing key in one place rather than copied into this
- * service. When they supply a ready-made playback URL on the question we use
- * it verbatim; the constructed form below is the fallback for questions that
- * arrive without one.
+ * Builds a URL and nothing else — it never touches S3.
  */
 
 const config = require("../config");

@@ -1,16 +1,6 @@
 /**
- * In-memory job store for exam runs.
- *
- * A full exam is ~5 Deepgram calls plus ~5 LLM calls run sequentially, which
- * takes minutes — far longer than a browser or proxy will hold a single HTTP
- * request open. So the API accepts the upload, returns an examId immediately,
- * and the client polls for progress.
- *
- * Deliberately in-memory: the client has asked that nothing be written to a
- * database for now. That means job state is lost on restart, which is fine for
- * a single-operator tool but is the first thing to revisit if this is ever
- * deployed for real. Shaped like save/get/list so swapping in a real store
- * later touches only this file.
+ * In-memory store of exam runs, keyed by examId. See docs/architecture.md for
+ * why this is not a database.
  */
 
 const jobs = new Map();

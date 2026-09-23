@@ -1,29 +1,11 @@
 /**
- * Speak2Go's `questionType`, and what this pipeline needs to derive from it.
+ * Speak2Go's `questionType` ("a1", "b", "c2") and the structure derived from
+ * it. questionId is a hash, so nothing may be parsed out of it.
  *
- * WHY THIS EXISTS. Every structural rule here used to be driven by our own
- * question ids ("1a", "1b", "2", "3", "4") — the letter suffix grouped a
- * question set, and the id identified Part B for the time-based deduction.
- * The client confirmed on 13 Aug 2026 that `questionId` is a randomly
- * generated hash and that the semantic label is `questionType`. Against a
- * hash, id parsing yields nothing: every question falls into its own group,
- * Part B is never recognised, and two scoring rules silently stop firing.
+ * Accepts a letter with an optional index, because the type values have been
+ * specified two different ways and both must map correctly.
  *
- * TOLERANT ON PURPOSE. The type values have been given to us two ways — the
- * schema sheet said "a" | "b" | "c1" | "c2", and the later message said "a1",
- * "a2", "b", "c". Rather than guess which is final, this accepts a letter with
- * an optional index, so every spelling in either list maps correctly. If a
- * third spelling appears it will either work or fail loudly, not quietly
- * mis-group an exam.
- *
- * GROUPING IS NOT JUST "SAME PART". Parts A and B group; Part C does not.
- *   - Part A is a choose-one group: the student answers one of two.
- *   - Part B is a set: 2023-format lessons split it into two questions that
- *     must BOTH be answered, so a missing half earns a coverage deduction.
- *   - Part C's two questions are independent, testing different things. Group
- *     them and the coverage rule fires on a student who answered both, which
- *     is exactly backwards.
- * Hence Part C questions each get their own group id.
+ * Parts A and B group; Part C does not. See docs/scoring-rules.md.
  */
 
 /** "a" / "a1" / "C2" / "b1" -> { part, index } ; anything else -> null */

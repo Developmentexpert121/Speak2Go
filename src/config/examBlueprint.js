@@ -1,50 +1,22 @@
 const { getReferenceMaterial } = require("../db/referenceMaterialRepository");
 
 /**
- * The canonical shape of a COBE exam, and the adapter that recovers that shape
- * from a raw Speak2Go lesson record.
+ * The canonical shape of a COBE exam, and the adapter that recovers it from a
+ * raw Speak2Go lesson record.
  *
- * This is the single source of truth for two things the rest of the pipeline
- * previously had to guess at:
- *
- *  1. THE DENOMINATOR. An exam is always out of 100 points, whether or not the
- *     student actually submitted every question. Without this, a skipped
- *     question silently disappears from the weighted average instead of
- *     costing the student its points.
- *
- *  2. THE MAPPING FROM PLATFORM DATA. Speak2Go lesson records carry no
- *     "question_id" and no "Part A/B/C" label — only an `order` number and an
- *     `answerType`. We recover the parts from the AUTOPLAY SEPARATOR VIDEOS
- *     that sit between them. See segmentLesson() for why that beats the two
- *     approaches tried before it.
- *
- * Point split follows the Ministry spec: Part A 25, Part B 25, Part C 50,
- * divided evenly between the questions actually present in each part — except
- * on a choose-one part, where every offered question carries the full amount
- * because only one of them counts. See CHOICE_PARTS.
+ * Two things depend on this file: that an exam is always marked out of 100,
+ * and that parts are recovered from the autoplay separator clips rather than
+ * from question counts or hardcoded order values — both earlier approaches
+ * silently dropped questions. See docs/scoring-rules.md.
  */
 
 /** Ministry point allocation per part. Always totals 100. */
 const PART_POINTS = { A: 25, B: 25, C: 50 };
 
 /**
- * Parts where the student CHOOSES one question rather than answering all of
- * them. The client confirmed on 13 Aug 2026 that Part A presents two questions
- * and the student answers one; both are still scored so the report can give
- * feedback on each, but only the higher of the two counts toward the grade.
- *
- * Consequences, both of which are handled explicitly elsewhere because getting
- * either wrong silently changes grades:
- *
- *  - Each question in the group is worth the FULL part points, not a share of
- *    them, because whichever one counts is worth the whole 25. Summing the
- *    group would mark Part A out of 50, so sumBlueprintPoints() counts a
- *    choice group once.
- *  - The partial-coverage deduction must not fire here. It exists for sets
- *    where every sub-question is required (see coverageDeduction.js); on a
- *    choose-one part, answering exactly one is compliance, not partial
- *    coverage, and deducting for it penalises the student for following the
- *    instructions.
+ * Parts where the student answers ONE of the questions offered. Each carries
+ * the full part points, and the coverage deduction must not fire on them.
+ * Both rules silently change grades if broken — docs/scoring-rules.md.
  */
 const CHOICE_PARTS = new Set(["A"]);
 
@@ -85,12 +57,9 @@ const BLUEPRINTS = {
 };
 
 /**
- * Question ids and descriptions per part, keyed by how many questions that
- * part contains. Ids are not cosmetic: questionMeta.parseQuestionMeta() reads
- * the "1a"/"1b" letter suffix to group a question SET, which is what triggers
- * the partial-coverage deduction. Part A's two questions and Part B's two
- * questions (2023 layout) are sets; Part C's two are independent questions
- * scored separately, so they get plain ids.
+ * Slots per part, keyed by how many questions that part contains. The ids are
+ * not cosmetic — the letter suffix groups a question set. Part C's two are
+ * independent and get plain ids.
  */
 const PART_SLOTS = {
   A: {
@@ -152,31 +121,12 @@ function getFreeSpeechQuestions(questionList) {
 }
 
 /**
- * Splits a lesson's free-speech questions into Parts A / B / C using the
- * positions of the autoplay separator clips.
+ * Splits a lesson into Parts A / B / C by the position of the autoplay
+ * separator clips. Matching hardcoded `order` values or counting questions
+ * both silently dropped questions on real lessons — docs/scoring-rules.md.
  *
- * WHY THIS AND NOT SOMETHING SIMPLER — two earlier approaches were tried
- * against all 123 COBE lessons in the dev database and both were wrong:
- *
- *   a) Matching hardcoded `order` values (7, 8, 20, 70, 85). Derived from a
- *      sample of 5 lessons. Three real exams use different numbers —
- *      [7,9,20,70,85] and [7,9,20,90,97] ("MATKONET 3: Tuesday 2020 COBE") —
- *      so this dropped Q2 from three exams and both Part C questions (50
- *      points) from MATKONET 3, silently scoring them as unattempted.
- *
- *   b) Mapping the 5 free-speech questions by ordinal position, gated on a
- *      "5 questions AND question 3 mentions your project" check. Correct for
- *      the 29 lessons using the 2+1+2 layout, but it rejected the four 2023
- *      exams outright: those use a 2+2+2 layout with a genuine two-question
- *      Part B, which no fixed count can express.
- *
- * Separator-based segmentation gets both layouts, and additionally excludes
- * the 88 topic/practice lessons ("Pets & Animals", "Music") that have no part
- * structure at all — several of which have exactly 5 free-speech questions and
- * are otherwise indistinguishable from an exam.
- *
- * @returns {{ A: Array, B: Array, C: Array } | null} null if the lesson has no
- *   part separators, i.e. it is not an exam.
+ * @returns {{ A: Array, B: Array, C: Array } | null} null when the lesson has
+ *   no part separators, i.e. it is not an exam.
  */
 function segmentLesson(questionList) {
   const sorted = (questionList || [])
@@ -266,26 +216,21 @@ function isFullExamLesson(questionList, lessonName = "", level = "5_UNITS_B2") {
 }
 
 /**
- * Adapts a raw Speak2Go lesson `questionList` (from
- * lessonDefinitions.phases.Conversation.questionList) into the question array
- * evaluateFullExam() expects.
+ * Adapts a raw Speak2Go lesson questionList into the question array the
+ * evaluation service expects.
  *
- * A question with no matching recording is kept with audioFilePath = null so
- * it still counts as unanswered against the exam total rather than vanishing.
- *
- * Throws if the lesson isn't a gradeable exam: mapping a 7-question practice
- * lesson onto 5 slots would silently discard two answers and mislabel the
- * rest, which is worse than refusing.
+ * A question with no recording is kept with audioFilePath = null so it counts
+ * as unanswered rather than vanishing. Throws when the lesson is not a
+ * gradeable exam — mapping a practice lesson onto 5 slots would discard
+ * answers and mislabel the rest.
  *
  * @param {Array} questionList - raw questions from the lesson document
- * @param {object} audioByIdDetection - { [ID_detection]: "<local path or URL>" }
+ * @param {object} audioByIdDetection - { [ID_detection]: "<path or URL>" }
  * @param {string} level
  * @param {object} [options]
- * @param {string} [options.lessonName] - only used to improve the error message
- * @param {object} [options.referenceMaterialByIdDetection] - pre-fetched map of
- *   { [ID_detection]: transcriptString } for Part C clips.  When supplied the
- *   sync function can attach it directly; otherwise call the async variant
- *   `mapLessonToExamQuestionsAsync` which does the store lookups itself.
+ * @param {string} [options.lessonName] - improves the error message only
+ * @param {object} [options.referenceMaterialByIdDetection] - pre-fetched Part C
+ *   transcripts; otherwise use mapLessonToExamQuestionsAsync
  */
 function mapLessonToExamQuestions(
   questionList,

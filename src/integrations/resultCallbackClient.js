@@ -1,32 +1,13 @@
 /**
  * Signed delivery of a finished exam result to Speak2Go.
  *
- * The client chose webhooks with HMAC-SHA256 and asked for a timestamp in the
- * signature (12 Aug 2026). The callback target arrives as `callbackUrl` on the
- * Exam Object.
+ * Signs `${timestamp}.${rawBody}`, never the body alone, so a captured
+ * delivery cannot be replayed with the clock moved forward. Fails closed with
+ * no secret and no host allowlist — callbackUrl is caller-supplied, so an
+ * unrestricted sender is an SSRF primitive.
  *
- * THE SIGNATURE. We sign `${timestamp}.${rawBody}`, not the body alone. A
- * signature over the body alone is replayable forever: anyone who captures one
- * delivery can resend that exact request tomorrow and it still verifies. Tying
- * the timestamp into the signed string means the timestamp cannot be edited
- * without invalidating the signature, so the receiver can reject anything
- * older than its tolerance window and a captured request stops being useful
- * within minutes.
- *
- * THE RAW BODY. `rawBody` is serialized exactly once here and that same string
- * is both signed and sent. The receiver must verify against the raw bytes it
- * received, NOT against a re-serialized parsed object — JSON.parse followed by
- * JSON.stringify can reorder keys and change whitespace, which changes the
- * digest and fails every verification for no visible reason. This is the
- * single most common way HMAC webhook integrations break, so verifyRequest()
- * below is exported for Avinoam to use directly rather than reimplement.
- *
- * THE ALLOWLIST. `callbackUrl` is caller-supplied input, so an unrestricted
- * sender is a server-side request forgery primitive: submit an exam with a
- * callbackUrl pointing at an internal address and we will POST a signed
- * request to it from inside the network. Hosts must therefore be named in
- * WEBHOOK_ALLOWED_HOSTS, and delivery fails closed when that is unset — an
- * undelivered result is recoverable, a blind SSRF is not.
+ * verifyRequest() is exported for the receiving side to use directly.
+ * See docs/webhook-signature.md and docs/integrations.md.
  */
 
 const config = require("../config");
@@ -42,11 +23,8 @@ const EVENT_HEADER = "x-s2g-event";
 const DEFAULT_TOLERANCE_SECONDS = 300;
 
 /**
- * Backoff schedule in ms, indexed by retry number. The client asked (12 Aug
- * 2026) for 3 retries, kept configurable — so the schedule is longer than the
- * default needs and is simply read up to WEBHOOK_MAX_RETRIES. Raising the
- * count past the end of the list reuses the last delay rather than running off
- * the end, which is why delayForRetry() clamps instead of indexing directly.
+ * Backoff in ms by retry number. Longer than the default needs; raising the
+ * count past the end reuses the last delay rather than running off it.
  */
 const RETRY_DELAYS_MS = [1000, 5000, 20000, 60000];
 

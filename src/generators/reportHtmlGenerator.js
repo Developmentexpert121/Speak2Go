@@ -5,13 +5,12 @@ const { esc, num } = require("../utils/escapeHtml");
 const { LOGO_DATA_URI, FAVICON_DATA_URI } = require("./brandAssets");
 
 /**
- * The stylesheet, inlined at render time.
+ * Renders a Report Object to HTML.
  *
- * Read from a file so the CSS can be edited as CSS, but embedded in the
- * output rather than linked: the report is opened straight from S3 and
- * printed by a headless browser, neither of which has a server to resolve a
- * relative stylesheet against. Read once at module load — it never changes
- * between renders.
+ * Self-contained output — inline styles, data-URI images, no external
+ * references. See docs/architecture.md.
+ *
+ * Every interpolated value goes through esc(). See escapeHtml.js.
  */
 const REPORT_CSS = fs.readFileSync(
   path.join(__dirname, "..", "templates", "reports", "report.css"),
@@ -29,18 +28,7 @@ const REPORT_CSS = fs.readFileSync(
  * embedded as data URIs. That is what lets the same file sit in S3, be opened
  * directly, and print to PDF with no server to resolve assets against.
  *
- * LAYOUT NOTES follow the client's video review of 19 Aug 2026:
- *   - the teacher's recommendations moved from the very end to just under the
- *     summary, because that is the part a teacher acts on and nobody scrolls
- *     past five question breakdowns to find it;
- *   - student details are set large, since the report is read at a glance
- *     before it is read in detail;
- *   - questions are numbered "1.1", not "1a" — a letter suffix reads as a
- *     variant of one question rather than the first of two choices;
- *   - each question block is unbreakable across pages. A response split over
- *     a page boundary was the specific thing he called "problematic".
- *
- * Every interpolated value goes through esc() — see escapeHtml.js for why.
+ * Layout follows the client's review notes; see docs/architecture.md.
  */
 function renderReportHtml(report, meta = {}) {
   // Band colours match renderDashboardHtml and public/styles.css so the same

@@ -1,14 +1,8 @@
 /**
- * Configuration, read from the environment in one place.
+ * Configuration, read from the environment in exactly one place.
  *
- * The style guide asks for config in env vars or a config file, never
- * hardcoded. Reading it here rather than scattering process.env through the
- * code means the full set of knobs is greppable in one file, and a missing
- * value shows up as a named default rather than as `undefined` surfacing
- * somewhere far from its cause.
- *
- * Per-environment overrides live in development.js / production.js and are
- * merged on top of these defaults.
+ * Read once at startup; reload() recomputes in place for tests that need to
+ * prove behaviour under a different environment. See docs/architecture.md.
  */
 
 const path = require("path");

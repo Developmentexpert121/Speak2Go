@@ -1,19 +1,13 @@
 /**
- * Reads a student's recording out of Speak2Go's private recordings bucket.
+ * Reads student recordings from the private recordings bucket, the same way
+ * the Speak2Go app does.
  *
- * The client set this shape on 13 Aug 2026: "since user recordings are
- * sensitive objects, the cobe report generator will need to access them the
- * same way speak2go does, which is by using aws' GetObjectCommand with a
- * bucket name and key."
+ * Separate from the reports bucket: different data, different sensitivity,
+ * and read-only here against read/write there.
  *
- * So the question object now carries `audioFileKey`, not a URL. Nothing here
- * mints a presigned link or makes an object public — the file is streamed to a
- * temp path, transcribed, and deleted by examRunner's cleanup along with every
- * other temp file for that run.
- *
- * ACCESS IS READ-ONLY BY DESIGN. This module only ever issues GetObject. If a
- * credential here could write, a bug in the report path could overwrite a
- * student's recording — an unrecoverable loss of the evidence behind a grade.
+ * File extensions in this bucket LIE — every object is named .mp3 and the
+ * real containers are WebM and Ogg. Nothing may branch on the extension.
+ * See docs/integrations.md.
  */
 
 /**

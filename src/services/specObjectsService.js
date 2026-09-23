@@ -1,35 +1,10 @@
 /**
- * The Exam and Student objects from spec section 3, built from the REAL
- * Speak2Go schema rather than from the spec's field names.
+ * The Exam and Student objects, built from Speak2Go's real Mongo schema
+ * rather than the spec's field names — the spec names fields that exist under
+ * different names across three collections.
  *
- * The spec names fields that don't exist under those names in Mongo. A
- * read-only survey of `ezspeak-net` found every one of them already present,
- * just spelled differently and spread across three collections:
- *
- *   output field     real location
- *   --------------   ----------------------------------------------------
- *   studentId        users.IDNumber        (Israeli ID — indexed, real PII)
- *   fullName         users.FirstName + users.LastName
- *   className        users.StudentGrade + users.StudentMakbila,
- *                    or users.ClassID[] -> classes.grade / classes.name
- *   schoolId         users.SemelMosad     (also on clients.SemelMosad)
- *   schoolName       clients.Name, joined on SemelMosad
- *
- * So section 3.2 is a join, not a new data model. This module encodes that
- * mapping in one place so the rest of the app never touches raw Mongo names.
- *
- * ON CASING: the spec doc writes these fields in snake_case, but the client
- * asked (12 Aug 2026) for camelCase on the wire, so the doc's `full_name`
- * ships as `fullName`. The PascalCase names above are Speak2Go's own Mongo
- * columns and are INPUTS — they keep their original spelling.
- *
- * ON HASHING: the spec asks for the student id to be "anonymized/hashed for
- * privacy while maintaining 1:1 uniqueness". IDNumber is a national ID
- * number, so it must never reach a log, a report, or the LLM prompt. We
- * hash it with a salted SHA-256: deterministic (so the 1:1 mapping holds
- * across runs) but not reversible. The salt lives in the environment — if
- * it changes, previously-issued ids stop matching, which is why it is read
- * once at module load and warned about when missing.
+ * The national ID is hashed here and the raw value is not retained.
+ * See docs/integrations.md.
  */
 
 const config = require("../config");

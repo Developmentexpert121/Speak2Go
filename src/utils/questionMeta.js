@@ -2,21 +2,12 @@ const { getBlueprint, getBlueprintEntry } = require("../config/examBlueprint");
 const { partFromQuestionType, groupIdFromQuestionType } = require("./questionType");
 
 /**
- * Derives structural metadata from a Question Object:
- *  - group_id: which question "set" this belongs to (1a & 1b -> group "1")
- *  - sub_id: the letter suffix, if any ("a", "b", or null)
- *  - part: A / B / C
+ * Structural metadata for a question: its group, its part, and whether the
+ * Part B time rule applies.
  *
- * `part` is resolved in priority order:
- *   1. Speak2Go's `questionType` ("a1", "b", "c2"...), which is the only one
- *      of these that survives a randomly-generated questionId.
- *   2. An explicit `part` field (what mapLessonToExamQuestions supplies).
- *   3. Parsing the `description` string — the original behaviour.
- *   4. The exam blueprint, looked up by question_id.
- *
- * questionType leads because the client confirmed on 13 Aug 2026 that
- * questionId is a hash carrying no structure. Steps 2-4 remain for the
- * operator UI and the lesson-record adapter, which both work from our own ids.
+ * questionType leads, because questionId is a hash and parsing it yields
+ * nothing. The remaining paths exist for the operator UI and the lesson
+ * adapter, which both work from our own ids.
  */
 function parseQuestionMeta(question, level) {
   const questionType = question.questionType ?? question.question_type ?? null;

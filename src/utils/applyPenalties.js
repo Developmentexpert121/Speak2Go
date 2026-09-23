@@ -1,30 +1,18 @@
 /**
- * Phase-1 penalty layer: only the checks that are fully derivable from a
- * single question's audio/transcript. Cross-question rules (partial-answer
- * chart, Part B time-based deduction table) need the full exam context and
- * belong in a later "exam-level" aggregation step, not here.
+ * Penalties derivable from one question's own audio and transcript.
+ * Cross-question rules need the full exam and live in the evaluation service.
  */
 
 /**
  * Ceiling above which an `unintelligible` flag is not honoured.
  *
- * Derived from the rubric scale, not picked by feel. Every sub-criterion is
- * scored at one of four levels — 25, 54, 75, 100 — so the midpoint between
- * the bottom level and the next one up is 39.5. A raw score at or above that
- * means the rubric placed the answer closer to "partially adequate" than to
- * "bottom band", which directly contradicts a claim that the answer could not
- * be understood at all. When the two disagree, the rubric wins: it is a
- * weighted average of ~a dozen judgements, the flag is a single boolean.
+ * 39.5 is the midpoint between the rubric's bottom two levels (25 and 54), so
+ * a raw score at or above it means the rubric placed the answer nearer
+ * "partially adequate" than "bottom band" — which contradicts a claim that it
+ * could not be understood at all. The rubric wins: it is a weighted average
+ * of a dozen judgements, the flag is one boolean.
  *
- * This exists because the flag was firing as a severity amplifier rather than
- * as the exceptional condition the Ministry rule describes. On the client's
- * Simulation 2 sample it zeroed three answers the rubric had scored 48.0,
- * 48.0 and 52.1 — with the model's own stated reasons being "lacks coherence
- * and depth" and "unrelated to the topic". Both are topic-development
- * failures that the rubric already grades directly, so the flag was deducting
- * a second time for the same weakness. Worse, it was not reproducible: one of
- * those answers scored 49.50 on one run and 0.00 on the next, from identical
- * audio.
+ * See docs/scoring-rules.md for the bug this fixed.
  */
 const UNINTELLIGIBLE_RAW_SCORE_CEILING = 39.5;
 

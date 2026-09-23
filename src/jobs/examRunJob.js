@@ -1,15 +1,9 @@
 /**
- * Drives one exam run end to end, updating the job store as it goes.
+ * Runs one exam end to end, updating the job store as it goes:
+ * fetch recordings -> evaluate -> recommendations -> build reports -> deliver.
  *
- * This is the orchestrator the repo previously lacked: the scoring engine was
- * complete but only reachable from manual CLI scripts. Nothing here changes
- * scoring behaviour — it just sequences the existing pieces:
- *
- *   reference material -> evaluateFullExam -> generateRecommendations
- *                      -> buildReportObject -> render HTML + PDF
- *
- * Results are returned to the caller and held in memory only. Per the client's
- * instruction, nothing is written to a database.
+ * Nothing here changes scoring. Results are held in memory only; per the
+ * client's instruction nothing is written to a database.
  */
 
 const fs = require("fs");

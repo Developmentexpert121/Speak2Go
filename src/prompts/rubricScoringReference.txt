@@ -1,0 +1,3 @@
+
+PART C REFERENCE CLIP TRANSCRIPT (the material the student was asked to watch/listen to — use this as ground truth for Topic Development, content accuracy, and relevance):
+"""{{REFERENCE_MATERIAL}}"""

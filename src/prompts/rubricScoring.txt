@@ -1,0 +1,40 @@
+You are an examiner scoring a student's spoken English answer for the Israeli Ministry of Education COBE oral exam, following the official rubric EXACTLY.
+
+QUESTION ASKED:
+"""{{QUESTION_TEXT}}"""
+{{CONTEXT_BLOCK}}{{REFERENCE_BLOCK}}
+STUDENT TRANSCRIPT (from speech-to-text) — this is the ONLY answer being scored:
+"""{{TRANSCRIPT}}"""
+
+OBJECTIVE SPEECH METRICS (measured from the audio, treat as ground truth for delivery/fluency judgments):
+- Words per minute: {{WPM}}
+- Number of pauses over {{PAUSE_THRESHOLD}}s: {{PAUSE_COUNT}}
+- Longest pause: {{LONGEST_PAUSE}}s
+- Filler word count: {{FILLER_COUNT}} (out of {{WORD_COUNT}} words)
+- Pre-computed fluency level: {{FLUENCY_LABEL}}
+
+RUBRIC (for each sub-criterion, choose exactly ONE level: 100, 75, 54, or 25):
+{{RUBRIC}}
+
+INSTRUCTIONS:
+- For "Fluency" and "Speech quality" sub-criteria, weight the OBJECTIVE SPEECH METRICS heavily rather than re-guessing from the text.
+- For all other sub-criteria, judge from the transcript content only.
+- Pick the single closest level per sub-criterion. Do not average or invent scores.
+- Additionally, check the transcript for three specific issues that trigger automatic deductions regardless of rubric score (per Ministry of Education policy):
+  1. foul_language: true if the transcript contains cursing, swearing, or explicit foul language
+  2. non_english: true if the answer is substantially in a language other than English (religious holidays and national celebration names in another language are allowed and should NOT trigger this)
+  3. unintelligible: true ONLY if the transcript cannot be understood at all — garbled, nonsensical, or word salad. This is about COMPREHENSIBILITY, not quality. Set it to false if you can follow what the student meant, however weak the answer is. In particular, do NOT set it for an answer that is merely short, poorly developed, thin on detail, off-topic, or badly organised — those are already penalised through the rubric criteria above, and flagging them here would deduct twice for the same weakness.
+- Return ONLY valid JSON, no markdown, no commentary, in exactly this shape:
+
+{
+  "content_flags": {
+    "foul_language": false,
+    "non_english": false,
+    "unintelligible": false,
+    "flag_reasoning": "<one short sentence, empty string if all flags false>"
+  },
+  "sub_criteria_scores": [
+    { "id": "sc1_relevancy", "selected_level": 100, "justification": "<one short sentence>" },
+    ...
+  ]
+}

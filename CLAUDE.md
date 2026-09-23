@@ -32,7 +32,7 @@ that has no DB.
 ## Commands
 
 ```bash
-npm test              # 123 unit + 9 integration, no network, nothing billable
+npm test              # 131 unit + 9 integration, no network, nothing billable
 npm run test:unit
 npm run test:integration
 npm start
@@ -79,5 +79,19 @@ additions, not just modifications, after any rename.
 
 ## Secrets
 
-All configuration is environment variables, read in `src/config/index.js`.
-See `.env.example`. Nothing is hardcoded and nothing is committed.
+All configuration is environment variables, read in `src/config/index.js` and
+nowhere else — `process.env` does not appear anywhere outside that file. See
+`.env.example`. Nothing is hardcoded and nothing is committed.
+
+## Where the reasoning lives
+
+Code comments are the short "why" at each decision point. The full account is
+in `docs/`:
+
+- [architecture.md](docs/architecture.md) — layers, storage, errors, config
+- [scoring-rules.md](docs/scoring-rules.md) — every rule that changes a grade
+- [integrations.md](docs/integrations.md) — buckets, playback links, callback
+- [webhook-signature.md](docs/webhook-signature.md) — the signature contract
+
+Prompts are `.txt` templates in `src/prompts/`; the report stylesheet is
+`src/templates/reports/report.css`, inlined at render time.

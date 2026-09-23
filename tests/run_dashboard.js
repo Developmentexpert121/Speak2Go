@@ -158,25 +158,103 @@ Fluency drops sharply on the unprepared Part C question compared to the rehearse
 
 The Part C answer was cut off under 20 seconds and the second Part C question was never attempted; together these forfeited half the available marks. Before the next attempt, confirm the student understands that a short answer scores zero rather than partial credit.`;
 
-async function main() {
-  const report = buildReportObject(MOCK_EXAM_RESULT, RECOMMENDATIONS);
+/**
+ * The 2023 simulations split Part B into a two-question set ("Tell me briefly
+ * about your project" / "What new information did you learn"), each worth
+ * 12.5 rather than a single 25-point question. Derived from the mock above by
+ * splitting Q2, so the two dashboards stay comparable.
+ */
+function toTwoQuestionPartB(exam) {
+  const q2 = exam.question_results.find((q) => q.question_id === "2");
+  const others = exam.question_results.filter((q) => q.question_id !== "2");
 
-  const html = renderDashboardHtml(MOCK_EXAM_RESULT, report, {
-    studentName: "Noa Ben-David",
-    examLevel: "5 Point COBE · CEFR B2",
-    dateExecuted: "2026-08-04",
-    examId: "exam_7f3a91c2",
-  });
+  const partB = [
+    {
+      ...q2,
+      question_id: "2a",
+      description: "Part B - Project Presentation (Q1)",
+      weight: 12.5,
+      question_text: "Tell me briefly about your project. What you were hoping to learn from it.",
+    },
+    {
+      ...q2,
+      question_id: "2b",
+      description: "Part B - Project Presentation (Q2)",
+      weight: 12.5,
+      question_text: "What new information did you learn from doing your project?",
+      raw_score: 54,
+      final_question_score: 43.2,
+      transcript: "I learned that solar panels are expensive but they save money later.",
+      audio_metrics: { ...q2.audio_metrics, totalDurationSeconds: 22.6, wordCount: 42, wpm: 111 },
+    },
+  ];
 
-  const htmlPath = path.join(__dirname, "sample_dashboard.html");
+  const question_results = [...others, ...partB].sort((a, b) =>
+    String(a.question_id).localeCompare(String(b.question_id))
+  );
+
+  const exam_layout = [
+    { question_id: "1a", part: "A", points: 12.5, description: "Part A - Spoken Production, Personal Response (Q1)" },
+    { question_id: "1b", part: "A", points: 12.5, description: "Part A - Spoken Production, Personal Response (Q2)" },
+    { question_id: "2a", part: "B", points: 12.5, description: "Part B - Project Presentation (Q1)" },
+    { question_id: "2b", part: "B", points: 12.5, description: "Part B - Project Presentation (Q2)" },
+    { question_id: "3", part: "C", points: 25, description: "Part C - Audio-Visual Response (Q1)" },
+    { question_id: "4", part: "C", points: 25, description: "Part C - Audio-Visual Response (Q2)" },
+  ];
+
+  // Recompute the headline figures, or the dial contradicts the question cards
+  const points_earned = question_results.reduce(
+    (sum, q) => sum + (q.final_question_score / 100) * q.weight,
+    0
+  );
+
+  return {
+    ...exam,
+    exam_layout,
+    question_results,
+    points_earned: Number(points_earned.toFixed(2)),
+    overall_score: Number(points_earned.toFixed(2)), // exam is out of 100
+  };
+}
+
+async function render(exam, meta, basename) {
+  const report = buildReportObject(exam, RECOMMENDATIONS);
+  const html = renderDashboardHtml(exam, report, meta);
+
+  const htmlPath = path.join(__dirname, `${basename}.html`);
   fs.writeFileSync(htmlPath, html);
   console.log(`HTML dashboard -> ${htmlPath}`);
 
   if (process.argv.includes("--html")) return;
 
-  const pdfPath = path.join(__dirname, "sample_dashboard.pdf");
+  const pdfPath = path.join(__dirname, `${basename}.pdf`);
   await renderReportPdf(html, pdfPath);
   console.log(`PDF dashboard  -> ${pdfPath}`);
+}
+
+async function main() {
+  await render(
+    MOCK_EXAM_RESULT,
+    {
+      studentName: "Noa Ben-David",
+      examLevel: "5 Point COBE · CEFR B2",
+      dateExecuted: "2026-08-04",
+      examId: "exam_7f3a91c2",
+    },
+    "sample_dashboard"
+  );
+
+  // The 2023 lesson format, whose Part B is a two-question set
+  await render(
+    toTwoQuestionPartB(MOCK_EXAM_RESULT),
+    {
+      studentName: "Yonatan Peretz",
+      examLevel: "5 Point COBE · CEFR B2 · 2023 format",
+      dateExecuted: "2026-08-04",
+      examId: "exam_2c81be44",
+    },
+    "sample_dashboard_2023"
+  );
 }
 
 main().catch((err) => {

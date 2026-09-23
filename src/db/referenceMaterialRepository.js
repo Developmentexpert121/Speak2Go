@@ -4,7 +4,7 @@ const path = require("path");
 /**
  * Persistence layer for Part C reference-material transcripts.
  *
- * Deliberately shaped like fileStore.js (save / get) so that once a real DB
+ * Deliberately shaped as save / get so that once a real DB
  * is available, only this file needs to be swapped — all callers remain
  * unchanged.
  *
@@ -24,7 +24,7 @@ function ensureStoreDir() {
 }
 
 function filePathFor(idDetection) {
-  // Match the sanitisation used in fileStore so the two stores are consistent.
+  // Sanitised so a clip id cannot escape the directory via "../".
   const safeId = String(idDetection).replace(/[^a-zA-Z0-9_-]/g, "_");
   return path.join(STORE_DIR, `${safeId}.json`);
 }

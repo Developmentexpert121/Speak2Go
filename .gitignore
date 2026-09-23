@@ -14,10 +14,10 @@ data/
 tests/client_sample_results*.json
 
 # Generated report artefacts
-tests/sample_report.html
-tests/sample_report.pdf
-tests/sample_dashboard.html
-tests/sample_dashboard.pdf
+tests/sample_report*.html
+tests/sample_report*.pdf
+tests/sample_dashboard*.html
+tests/sample_dashboard*.pdf
 
 # Reference data pulled from the client database
 db_reference/

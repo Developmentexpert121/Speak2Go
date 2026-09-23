@@ -25,9 +25,11 @@
  * arrive without one.
  */
 
+const config = require("../config");
+
 /** Overridable so a staging deployment does not link into production. */
 function appBaseUrl() {
-  return (process.env.SPEAK2GO_APP_BASE_URL || "https://app.speak2go.com").replace(/\/+$/, "");
+  return (config.speak2go.appBaseUrl).replace(/\/+$/, "");
 }
 
 /**

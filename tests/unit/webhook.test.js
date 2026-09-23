@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert");
 
+const config = require("../../src/config");
 const {
   signPayload,
   verifyRequest,
@@ -22,6 +23,12 @@ function withEnv(vars, fn) {
     if (v === undefined) delete process.env[k];
     else process.env[k] = v;
   }
+  // Configuration is read once at startup, so changing the environment is not
+  // enough on its own — it has to be reloaded for the module under test to
+  // see it. Without this the fail-closed cases below would silently exercise
+  // whatever happened to be in .env rather than the case they describe.
+  config.reload();
+
   try {
     return fn();
   } finally {
@@ -29,6 +36,7 @@ function withEnv(vars, fn) {
       if (v === undefined) delete process.env[k];
       else process.env[k] = v;
     }
+    config.reload();
   }
 }
 

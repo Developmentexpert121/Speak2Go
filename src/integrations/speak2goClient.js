@@ -24,6 +24,8 @@
  * sample) and fetching returns a precise 502 naming what is missing.
  */
 
+const config = require("../config");
+
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
@@ -35,8 +37,8 @@ const { computeTimeBasedDeduction } = require("../utils/timeBasedDeduction");
 const REFERENCE_FILE = path.join(__dirname, "..", "db_reference", "sample_recordings.json");
 
 /** Where the Speak2Go app lives, and the token that authenticates us to it. */
-const APP_BASE_URL = process.env.SPEAK2GO_API_URL || "";
-const APP_TOKEN = process.env.SPEAK2GO_API_TOKEN || "";
+const APP_BASE_URL = config.speak2go.apiUrl || "";
+const APP_TOKEN = config.speak2go.apiToken || "";
 const RECORDING_PATH = "/api/v1/upload/getRecording";
 
 /** True when we can actually pull audio rather than just list it. */

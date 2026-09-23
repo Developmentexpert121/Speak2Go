@@ -32,6 +32,8 @@
  * once at module load and warned about when missing.
  */
 
+const config = require("../config");
+
 const crypto = require("crypto");
 
 /**
@@ -76,7 +78,7 @@ function normalizeLevel(level) {
   return LEVEL_ALIASES[raw] || raw;
 }
 
-const ID_SALT = process.env.STUDENT_ID_SALT || "";
+const ID_SALT = config.studentIdSalt || "";
 let warnedAboutSalt = false;
 
 /**

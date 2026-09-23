@@ -39,8 +39,10 @@ const { S3Client, GetObjectCommand } = require("@aws-sdk/client-s3");
  * Separate from the reports bucket: different data, different sensitivity,
  * and we hold different permissions on each (read-only here, write there).
  */
-const BUCKET = process.env.S3_RECORDINGS_BUCKET || "s2g-recordings";
-const REGION = process.env.S3_RECORDINGS_REGION || process.env.AWS_REGION || "us-east-1";
+const config = require("../config");
+
+const BUCKET = config.aws.recordingsBucket;
+const REGION = config.aws.region;
 
 let client = null;
 function getClient() {
@@ -49,12 +51,7 @@ function getClient() {
 }
 
 function isConfigured() {
-  return Boolean(
-    (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
-      process.env.AWS_PROFILE ||
-      process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
-      process.env.AWS_WEB_IDENTITY_TOKEN_FILE
-  );
+  return config.aws.hasCredentials;
 }
 
 /**

@@ -1,12 +1,6 @@
-const OpenAI = require("openai");
+const { createChatCompletion } = require("../integrations/openaiClient");
 const { questionNumber } = require("../utils/questionNumber");
-
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o-mini";
-let client;
-function getClient() {
-  if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-  return client;
-}
+const { RECOMMENDATIONS_SYSTEM, buildRecommendationsPrompt } = require("../prompts/recommendations");
 
 /**
  * Produces the Report Object's teacher_recommendations text: a short,
@@ -30,23 +24,15 @@ async function generateRecommendations(examResult) {
     deductions: r.deductions,
   }));
 
-  const prompt = `You are summarizing an English oral exam result for a teacher (not the student). Given this per-question breakdown, write 3-4 short, specific, actionable sentences a teacher could use to plan follow-up instruction. Do not restate scores/numbers already visible elsewhere in the report — focus on patterns (e.g. recurring weak criterion, fluency trend, missed sub-questions). Be concrete, not generic.
-
-DATA:
-${JSON.stringify(summary, null, 2)}
-
-Return plain text only, no markdown, no headers.`;
-
-  const response = await getClient().chat.completions.create({
-    model: MODEL,
+  const text = await createChatCompletion({
     temperature: 0.3,
     messages: [
-      { role: "system", content: "You write concise, specific teacher-facing feedback summaries." },
-      { role: "user", content: prompt },
+      { role: "system", content: RECOMMENDATIONS_SYSTEM },
+      { role: "user", content: buildRecommendationsPrompt(summary) },
     ],
   });
 
-  return response.choices[0].message.content.trim();
+  return text.trim();
 }
 
 module.exports = { generateRecommendations };

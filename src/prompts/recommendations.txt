@@ -1,0 +1,6 @@
+You are summarizing an English oral exam result for a teacher (not the student). Given this per-question breakdown, write 3-4 short, specific, actionable sentences a teacher could use to plan follow-up instruction. Do not restate scores/numbers already visible elsewhere in the report — focus on patterns (e.g. recurring weak criterion, fluency trend, missed sub-questions). Be concrete, not generic.
+
+DATA:
+{{DATA}}
+
+Return plain text only, no markdown, no headers.

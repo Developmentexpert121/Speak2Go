@@ -1,4 +1,6 @@
-const PAUSE_THRESHOLD_SECONDS = parseFloat(process.env.PAUSE_THRESHOLD_SECONDS || "3");
+const config = require("../config");
+
+const PAUSE_THRESHOLD_SECONDS = config.scoring.pauseThresholdSeconds;
 const FILLER_WORDS = new Set(["um", "uh", "uhh", "umm", "erm", "ah", "hmm"]);
 
 /**

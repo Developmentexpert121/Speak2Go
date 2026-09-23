@@ -5,6 +5,7 @@ const {
   REGION: REPORT_REGION,
 } = require("../integrations/s3ReportStorageClient");
 const { LEVELS } = require("./examService");
+const config = require("../config");
 
 /**
  * What the service can currently do.
@@ -15,9 +16,9 @@ const { LEVELS } = require("./examService");
  */
 const getHealth = () => ({
   ok: true,
-  deepgramKey: Boolean(process.env.DEEPGRAM_API_KEY),
-  openaiKey: Boolean(process.env.OPENAI_API_KEY),
-  model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+  deepgramKey: Boolean(config.deepgram.apiKey),
+  openaiKey: Boolean(config.openai.apiKey),
+  model: config.openai.model,
   recordingsFetch: canFetchRecordings(),
   recordingEndpoint: RECORDING_PATH,
   reportUpload: {
@@ -26,8 +27,8 @@ const getHealth = () => ({
     region: REPORT_REGION,
   },
   resultCallback: {
-    signingSecret: Boolean(process.env.WEBHOOK_SIGNING_SECRET),
-    allowedHosts: (process.env.WEBHOOK_ALLOWED_HOSTS || "").split(",").filter(Boolean),
+    signingSecret: Boolean(config.resultCallback.signingSecret),
+    allowedHosts: config.resultCallback.allowedHosts,
   },
   levels: LEVELS,
 });

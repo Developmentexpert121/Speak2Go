@@ -29,6 +29,8 @@
  * undelivered result is recoverable, a blind SSRF is not.
  */
 
+const config = require("../config");
+
 const crypto = require("crypto");
 
 const SIGNATURE_HEADER = "x-s2g-signature";
@@ -52,7 +54,7 @@ const RETRY_DELAYS_MS = [1000, 5000, 20000, 60000];
 const DEFAULT_MAX_RETRIES = 3;
 
 function getSecret() {
-  return process.env.WEBHOOK_SIGNING_SECRET || "";
+  return config.resultCallback.signingSecret;
 }
 
 /**
@@ -60,7 +62,7 @@ function getSecret() {
  * without a restart and so tests can set it per case.
  */
 function maxRetries() {
-  const raw = process.env.WEBHOOK_MAX_RETRIES;
+  const raw = config.resultCallback.maxRetries;
   if (raw === undefined || raw === "") return DEFAULT_MAX_RETRIES;
   const n = Number(raw);
   // A non-numeric or negative value falls back to the default instead of
@@ -81,10 +83,7 @@ function delayForRetry(retryNumber) {
  * suffix match on a dot boundary rather than a substring match.
  */
 function allowedHosts() {
-  return (process.env.WEBHOOK_ALLOWED_HOSTS || "")
-    .split(",")
-    .map((h) => h.trim().toLowerCase())
-    .filter(Boolean);
+  return config.resultCallback.allowedHosts.map((h) => h.toLowerCase());
 }
 
 function hostIsAllowed(hostname, allowed = allowedHosts()) {

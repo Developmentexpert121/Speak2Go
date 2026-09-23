@@ -31,16 +31,31 @@ test("a missing id yields no link rather than one pointing at 'undefined'", () =
 });
 
 test("the base url is overridable so staging does not link into production", () => {
+  // Configuration is read once at startup now that everything goes through
+  // src/config, so overriding it means setting the variable before the module
+  // loads — which is what a staging deployment actually does. Mutating
+  // process.env mid-process would test a behaviour the service no longer has.
   const saved = process.env.SPEAK2GO_APP_BASE_URL;
   process.env.SPEAK2GO_APP_BASE_URL = "https://staging.speak2go.com/";
+
+  for (const m of ["../../src/config", "../../src/utils/recordingUrl"]) {
+    delete require.cache[require.resolve(m)];
+  }
+
   try {
+    const fresh = require("../../src/utils/recordingUrl");
     assert.equal(
-      buildRecordingUrl({ reportId: "e1", questionId: "1a" }),
+      fresh.buildRecordingUrl({ reportId: "e1", questionId: "1a" }),
       "https://staging.speak2go.com/#/recordings/play?r=e1&q=1a"
     );
+    // The trailing slash in the configured value must not double up.
+    assert.equal(fresh.appBaseUrl(), "https://staging.speak2go.com");
   } finally {
     if (saved === undefined) delete process.env.SPEAK2GO_APP_BASE_URL;
     else process.env.SPEAK2GO_APP_BASE_URL = saved;
+    for (const m of ["../../src/config", "../../src/utils/recordingUrl"]) {
+      delete require.cache[require.resolve(m)];
+    }
   }
 });
 

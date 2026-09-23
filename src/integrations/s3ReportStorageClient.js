@@ -31,13 +31,15 @@
 const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
 const { getSignedUrl } = require("@aws-sdk/s3-request-presigner");
 
-const BUCKET = process.env.S3_REPORT_BUCKET || "oral-exams-s2g";
-const REGION = process.env.AWS_REGION || "us-east-1";
-const PREFIX = (process.env.S3_REPORT_PREFIX || "reports").replace(/^\/+|\/+$/g, "");
-const PUBLIC_BASE_URL = (process.env.S3_PUBLIC_BASE_URL || "").replace(/\/+$/, "");
+const config = require("../config");
+
+const BUCKET = config.aws.reportBucket;
+const REGION = config.aws.region;
+const PREFIX = config.aws.reportPrefix.replace(/^\/+|\/+$/g, "");
+const PUBLIC_BASE_URL = config.aws.publicBaseUrl.replace(/\/+$/, "");
 
 /** Seconds a presigned report link stays valid. Seven days is the SigV4 max. */
-const URL_TTL_SECONDS = Number(process.env.S3_URL_TTL_SECONDS || 7 * 24 * 60 * 60);
+const URL_TTL_SECONDS = config.aws.urlTtlSeconds;
 
 let client;
 function getClient() {
@@ -55,12 +57,7 @@ function getClient() {
  * was supplied at all.
  */
 function isConfigured() {
-  return Boolean(
-    (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY) ||
-      process.env.AWS_PROFILE ||
-      process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
-      process.env.AWS_WEB_IDENTITY_TOKEN_FILE
-  );
+  return config.aws.hasCredentials;
 }
 
 /** `reports/2026/08/{examId}/report.html` — dated so the bucket stays browsable. */

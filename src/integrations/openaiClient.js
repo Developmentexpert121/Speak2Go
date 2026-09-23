@@ -1,10 +1,28 @@
 const OpenAI = require("openai");
 
-const MODEL = process.env.OPENAI_MODEL || "gpt-4o";
+const config = require("../config");
+
+const MODEL = config.openai.model;
+
 let client;
 function getClient() {
-  if (!client) client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  if (!client) client = new OpenAI({ apiKey: config.openai.apiKey });
   return client;
+}
+
+/**
+ * One chat completion. Exported so every OpenAI call in the service goes
+ * through a single client and a single model setting.
+ */
+async function createChatCompletion({ messages, temperature = 0, seed, responseFormat }) {
+  const response = await getClient().chat.completions.create({
+    model: MODEL,
+    messages,
+    temperature,
+    ...(seed !== undefined ? { seed } : {}),
+    ...(responseFormat ? { response_format: responseFormat } : {}),
+  });
+  return response.choices[0].message.content;
 }
 
 /**
@@ -55,7 +73,7 @@ STUDENT TRANSCRIPT (from speech-to-text) — this is the ONLY answer being score
 
 OBJECTIVE SPEECH METRICS (measured from the audio, treat as ground truth for delivery/fluency judgments):
 - Words per minute: ${audioMetrics.wpm}
-- Number of pauses over ${process.env.PAUSE_THRESHOLD_SECONDS || 3}s: ${audioMetrics.pauseCount}
+- Number of pauses over ${config.scoring.pauseThresholdSeconds}s: ${audioMetrics.pauseCount}
 - Longest pause: ${audioMetrics.longestPauseSeconds}s
 - Filler word count: ${audioMetrics.fillerWordCount} (out of ${audioMetrics.wordCount} words)
 - Pre-computed fluency level: ${audioMetrics.fluencyLabel}
@@ -133,4 +151,4 @@ async function scoreQuestionAgainstRubric({ questionText, transcript, audioMetri
   };
 }
 
-module.exports = { scoreQuestionAgainstRubric };
+module.exports = { scoreQuestionAgainstRubric, createChatCompletion, MODEL };
